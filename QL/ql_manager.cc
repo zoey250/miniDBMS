@@ -244,10 +244,10 @@ RC QL_Manager::Select(int nSelAttrs, const RelAttr *selAttrs,
             DataAttrInfo &rhsAttr = attrMap[make_tag(conditions[i].rhsAttr)];
             cond.rhsAttr = rhsAttr;
             if (!strcmp(lhsAttr.relName, rhsAttr.relName)) {
-                // 左右属性不属于同一关系表 将该条件放入simpleConditions列表
+                // 左右属性属于同一关系表 将该条件放入simpleConditions列表
                 simpleConditions[lhsAttrNum].push_back(cond);
             } else {
-                // 左右属性属于同一关系表 将该条件放入complexConditions列表
+                // 左右属性不属于同一关系表 将该条件放入complexConditions列表
                 complexConditions.push_back(cond);
             }
             int rhsAttrNum = relNumMap[std::string(rhsAttr.relName)];       // 右属性所属关系表名的下标
@@ -366,6 +366,7 @@ RC QL_Manager::Select(int nSelAttrs, const RelAttr *selAttrs,
             }
             if (cond.rhsAttr.indexNo != -1 && !filtered[relNumMap[cond.rhsAttr.relName]]) {
                 condition = cond;
+                // FIXME change symbol.
                 std::swap(condition.lhsAttr, condition.rhsAttr);
                 found = true;
                 if (cond.op == EQ_OP) break;
