@@ -52,6 +52,8 @@ file(GLOB C_SOURCE_FILES
         "QL/*.c"
         "PARSER/*.h"
         "PARSER/*.c"
+        "OP/*.h"
+        "OP/*.c"
         )
 
 file(GLOB CPP_SOURCE_FILES
@@ -69,6 +71,8 @@ file(GLOB CPP_SOURCE_FILES
         "QL/*.cc"
         "PARSER/*.h"
         "PARSER/*.cc"
+        "OP/*.h"
+        "OP/*.cc"
         )
 set(SOURCE_FILES
         ${C_SOURCE_FILES}
