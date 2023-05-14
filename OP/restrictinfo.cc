@@ -1,45 +1,54 @@
 #include "restrictinfo.h"
-#include "nodeFuncs.h"
-#include "optimizer.h"
 
 //
 // Created by elias on 23-5-8.
 //
+
 RestrictInfo *
-make_restrictinfo(PlannerInfo *root,
-                Expr *clause,
-                Relids required_relids)
+commute_restrictinfo(RestrictInfo *rinfo, CompOp comm_op)
 {
-    RestrictInfo *restrictinfo = makeNode(RestrictInfo);
+    RestrictInfo   *result;
+    OpExpr         *newclause;
+    OpExpr         *clause = castNode(OpExpr, rinfo->clause);
 
-    restrictinfo->clause = clause;
+    newclause = makeNode(OpExpr);
+    memcpy(newclause, clause, sizeof(OpExpr));
 
-    if (list_length(((OpExpr *) clause)->args) == 2)
+    newclause->opno = comm_op;
+    newclause->args = list_make2(lsecond(clause->args),
+                                 linitial(clause->args));
+
+    result = makeNode(RestrictInfo);
+    memcpy(result, rinfo, sizeof(RestrictInfo));
+
+    result->clause = (Expr *) newclause;
+    result->left_relids = rinfo->right_relids;
+    result->right_relids = rinfo->left_relids;
+
+    return result;
+}
+
+CompOp
+get_commutator(CompOp opno)
+{
+    CompOp  result;
+    switch (opno)
     {
-        restrictinfo->left_relids = pull_varnos(root, get_leftop(clause));
-        restrictinfo->right_relids = pull_varnos(root, get_rightop(clause));
-
-        restrictinfo->clause_relids = bms_union(restrictinfo->left_relids,
-                                                restrictinfo->right_relids);
-
-        if (!bms_is_empty(restrictinfo->left_relids) &&
-            !bms_is_empty(restrictinfo->right_relids) &&
-            !bms_overlap(restrictinfo->left_relids,
-                         restrictinfo->right_relids))
-        {
-            restrictinfo->can_join = true;
-        }
+        case LT_OP:
+            result = GT_OP;
+            break;
+        case GT_OP:
+            result = LT_OP;
+            break;
+        case LE_OP:
+            result = GE_OP;
+            break;
+        case GE_OP:
+            result = LE_OP;
+            break;
+        default:
+            result = opno;
+            break;
     }
-    // TODO else
-
-    if (required_relids != NULL)
-    {
-        restrictinfo->required_relids = required_relids;
-    }
-    else
-    {
-        restrictinfo->required_relids = restrictinfo->clause_relids;
-    }
-
-    return restrictinfo;
+    return result;
 }

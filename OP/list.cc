@@ -10,6 +10,7 @@ static ListCell *insert_new_cell(List *list, int pos);
 static void enlarge_list(List *list, int min_size);
 static void new_tail_cell(List *list);
 static void new_head_cell(List *list);
+static void list_free_private(List *list, bool deep);
 
 #define LIST_HEADER_OVERHEAD \
     ((int) (offsetof(List, initial_elements) - 1) / sizeof(ListCell) + 1)
@@ -72,22 +73,29 @@ lcons(void *datum, List *list)
 }
 
 List *
-list_copy_deep(const List *oldlist)
+list_delete_nth_cell(List *list, int n)
 {
-    List   *newlist;
-
-    if (oldlist == NIL)
+    if (list->length == 1)
     {
+        list_free(list);
         return NIL;
     }
+    memmove(&list->elements[n], &list->elements[n + 1],
+            (list->length - 1 - n) * sizeof(ListCell));
+    list->length--;
+    return list;
+}
 
-    newlist = new_list(oldlist->type, oldlist->length);
-    for (int i = 0; i < newlist->length; ++i)
-    {
-        lfirst(&newlist->elements[i]) =
-                copyObjectImpl(lfirst(&oldlist->elements[i]));
-    }
-    return newlist;
+List *
+list_delete_cell(List *list, ListCell *cell)
+{
+    return list_delete_nth_cell(list, cell - list->elements);
+}
+
+void
+list_free(List *list)
+{
+    list_free_private(list, false);
 }
 
 static List *
@@ -168,4 +176,27 @@ new_head_cell(List *list)
     memmove(&list->elements[1], &list->elements[0],
             list->length * sizeof(ListCell));
     list->length++;
+}
+
+static void
+list_free_private(List *list, bool deep)
+{
+    if (list == NIL)
+    {
+        return;
+    }
+
+    if (deep)
+    {
+        for (int i = 0; i < list->length; ++i)
+        {
+            free(lfirst(&list->elements[0]));
+        }
+    }
+
+    if (list->elements != list->initial_elements)
+    {
+        free(list->elements);
+    }
+    free(list);
 }

@@ -9,6 +9,7 @@
 #include "ext.h"
 #include "pathnodes.h"
 #include "attnum.h"
+#include "../redbase.h"
 
 typedef struct Expr
 {
@@ -17,15 +18,15 @@ typedef struct Expr
 
 typedef struct OpExpr
 {
-    Expr    xpr;
-    Oid     opno;
+    Expr    expr;
+    CompOp     opno;
 
     List   *args;
 } OpExpr;
 
 typedef struct Var
 {
-    Expr        xpr;
+    Expr        expr;
     int         varno;
     AttrNumber  varattno;
 } Var;
