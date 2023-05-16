@@ -7,6 +7,4 @@
 
 typedef unsigned int Oid;
 
-#define InvalidOid  ((Oid) 0)
-
 #endif //MICRODBMS_EXT_H

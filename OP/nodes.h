@@ -49,7 +49,4 @@ typedef struct Node
 
 #define castNode(_type_, nodeptr) ((_type_ *) (nodeptr))
 
-extern void *copyObjectImpl(const void *from);
-#define copyObject(obj) copyObjectImpl(obj)
-
 #endif //MICRODBMS_NODES_H

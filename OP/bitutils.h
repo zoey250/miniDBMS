@@ -7,20 +7,10 @@
 
 #include "c.h"
 
-//extern const uint8 leftmost_one_pos[256];
-
 static inline int
 leftmost_one_pos32(uint32 word)
 {
     return 31 - __builtin_clz(word);
-    /*
-    int     shift = 32 - 8;
-    while ((word >> shift) == 0)
-    {
-        shift -= 8;
-    }
-    return shift + leftmost_one_pos[(word >> shift) & 255];
-    */
 }
 
 static inline uint32

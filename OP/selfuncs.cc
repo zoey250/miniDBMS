@@ -7,6 +7,14 @@
 #include "selfuncs.h"
 #include "optimizer.h"
 
+#define BTLessStrategyNumber			1
+#define BTLessEqualStrategyNumber		2
+#define BTEqualStrategyNumber			3
+#define BTGreaterEqualStrategyNumber	4
+#define BTGreaterStrategyNumber			5
+
+static int get_op_strategy(CompOp opno);
+
 void
 btcostestimate(struct PlannerInfo *root, struct IndexPath *path,
                double loop_count, Cost *indexStartupCost,
@@ -20,7 +28,6 @@ btcostestimate(struct PlannerInfo *root, struct IndexPath *path,
     double          numIndexTuples;
     Cost            desccentCost;
     List           *indexBoundQuals;
-    int             indexcol;
     ListCell       *lc;
     bool            eqQualHere;
 
@@ -33,7 +40,8 @@ btcostestimate(struct PlannerInfo *root, struct IndexPath *path,
         {
             RestrictInfo   *rinfo = lfirst_node(RestrictInfo, lc2);
             Expr           *clause = rinfo->clause;
-            Oid             clause_op = InvalidOid;
+            CompOp             clause_op;
+            int             op_strategy;
 
             // TODO maybe, it must be OpExpr.
             if (IsA(clause, OpExpr))
@@ -42,14 +50,17 @@ btcostestimate(struct PlannerInfo *root, struct IndexPath *path,
                 clause_op = op->opno;
             }
 
-            // TODO if it is equal strategy
-            eqQualHere = true;
+            op_strategy = get_op_strategy(clause_op);
+            if (op_strategy == BTEqualStrategyNumber)
+            {
+                eqQualHere = true;
+            }
 
             indexBoundQuals = lappend(indexBoundQuals, rinfo);
         }
     }
 
-    if (index->unique && indexcol == index->nkeycolumns - 1 && eqQualHere)
+    if (index->unique && eqQualHere)
     {
         numIndexTuples = 1.0;
     }
@@ -178,6 +189,34 @@ get_quals_from_indexclauses(List *indexclauses)
             RestrictInfo *rinfo = lfirst_node(RestrictInfo, lc2);
             result = lappend(result, rinfo);
         }
+    }
+    return result;
+}
+
+static int
+get_op_strategy(CompOp opno)
+{
+    int result;
+    switch (opno)
+    {
+        case EQ_OP:
+            result = BTEqualStrategyNumber;
+            break;
+        case LT_OP:
+            result = BTLessEqualStrategyNumber;
+            break;
+        case GT_OP:
+            result = BTGreaterStrategyNumber;
+            break;
+        case LE_OP:
+            result = BTLessEqualStrategyNumber;
+            break;
+        case GE_OP:
+            result = BTGreaterEqualStrategyNumber;
+            break;
+        default:
+            result = 0;
+            break;
     }
     return result;
 }

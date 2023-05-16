@@ -23,7 +23,6 @@ struct PlannerInfo
     int         simple_rel_array_size;
     struct RelOptInfo **simple_rel_array;
     Cardinality total_table_pages;
-    List       *eq_classes;
 };
 
 typedef struct QualCost
@@ -39,38 +38,24 @@ typedef struct RelOptInfo
 
     Cardinality     rows;
 
-    // TODO ??
-    bool            consider_startup;
-    bool            consider_param_startup;
-
-    // TODO __input__
+    // __input__
     List           *indexlist;
 
     BlockNumber     pages;
     Cardinality     tuples;
 
-    Bitmapset      *eclass_indexes;
-    QualCost        baserestrictcost;
+    QualCost        baserestrictcost;   // TODO 默认为0
     Index           relid;
-    bool            has_eclass_joins;
 
-    // TODO __output__
+    struct PathTarget  *reltarget;
+
+    // __output__
     List           *pathlist;
 
     struct Path    *cheapest_startup_path;
     struct Path    *cheapest_total_path;
-    List           *cheapest_parameterized_paths;
 
 } RelOptInfo;
-
-typedef struct ParamPathInfo
-{
-    NodeTag     type;
-
-    Relids      ppi_req_outer;
-    Cardinality ppi_rows;
-    List       *ppi_clauses;
-} ParamPathInfo;
 
 typedef struct Path
 {
@@ -78,17 +63,12 @@ typedef struct Path
     NodeTag     pathtype;
 
     RelOptInfo *parent;
+    PathTarget *pathtarget;
     Cardinality rows;
     Cost        startup_cost;
     Cost        total_cost;
 
-    ParamPathInfo  *param_info;
-
-    List       *pathkeys;
 } Path;
-
-#define PATH_REQ_OUTER(path) \
-    ((path)->param_info ? (path)->param_info->ppi_req_outer : (Relids) NULL)
 
 typedef struct PathKey
 {
@@ -113,9 +93,7 @@ struct IndexOptInfo
 
     int         tree_height;
 
-    // TODO single column, maybe don't need array.
-    int         nkeycolumns;
-    int        *indexkeys;
+    int        indexkey;
 
     List       *indrestrictinfo;
 
@@ -127,24 +105,7 @@ typedef struct IndexClause
     NodeTag     type;
     struct RestrictInfo *rinfo;
     List       *indexquals;
-    AttrNumber  indexcol;
 } IndexClause;
-
-typedef struct EquivalenceClass
-{
-    NodeTag     type;
-    List       *ec_members;
-    List       *ec_sources;
-    List       *ec_derives;
-} EquivalenceClass;
-
-typedef struct EquivalenceMember
-{
-    NodeTag     type;
-
-    Expr       *em_expr;
-    Relids      em_relids;
-} EquivalenceMember;
 
 typedef struct RestrictInfo
 {
@@ -156,14 +117,8 @@ typedef struct RestrictInfo
 
     Relids  clause_relids;
     Relids  required_relids;
-//    Relids  outer_relids;
     Relids  left_relids;
     Relids  right_relids;
-
-    EquivalenceClass   *parent_ec;
-
-    EquivalenceMember  *left_em;
-    EquivalenceMember  *right_em;
 
 } RestrictInfo;
 
@@ -176,13 +131,18 @@ typedef struct IndexPath
     Selectivity indexselectivity;
 } IndexPath;
 
+typedef struct PathTarget
+{
+    NodeTag     type;
+    QualCost    cost;
+} PathTarget;
+
 extern void set_cheapest(RelOptInfo *parent_rel);
 extern void add_path(RelOptInfo *parent_rel, Path *new_path);
 extern Path *create_seqscan_path(RelOptInfo *rel);
 extern void create_index_paths(PlannerInfo *root, RelOptInfo *rel);
 extern int compare_path_costs(Path *path1, Path *path2, CostSelect criterion);
 extern IndexPath *create_index_path(PlannerInfo *root, IndexOptInfo *index,
-                                    List *indexclauses, List *pathkeys,
-                                    Relids required_outer, double loop_count);
+                                    List *indexclauses, double loop_count);
 
 #endif //MICRODBMS_PATHNODES_H

@@ -6,7 +6,6 @@
 #include "cost.h"
 #include "index_selfuncs.h"
 #include "optimizer.h"
-#include "paths.h"
 
 double seq_page_cost = DEFAULT_SEQ_PAGE_COST;
 double random_page_cost = DEFAULT_RANDOM_PAGE_COST;
@@ -16,8 +15,6 @@ double cpu_index_tuple_cost = DEFAULT_CPU_INDEX_TUPLE_COST;
 double cpu_operator_cost = DEFAULT_CPU_OPERATOR_COST;
 
 int effective_cache_size = DEFAULT_EFFECTIVE_CACHE_SIZE;
-
-static List *extract_nonindex_conditions(List *qual_clauses, List *indexclauses);
 
 void
 cost_seqscan(Path *path, RelOptInfo *baserel)
@@ -51,7 +48,6 @@ cost_index(IndexPath *path, PlannerInfo *root, double loop_count)
 {
     IndexOptInfo   *index = path->indexinfo;
     RelOptInfo     *baserel = index->rel;
-    List           *qpquals;
     Cost            startup_cost = 0;
     Cost            run_cost = 0;
     Cost            cpu_run_cost = 0;
@@ -75,24 +71,11 @@ cost_index(IndexPath *path, PlannerInfo *root, double loop_count)
     double          rand_heap_pages;
     double          index_pages;
 
-    // TODO maybe unuseful
-    if (path->path.param_info)
-    {
-        path->path.rows = path->path.param_info->ppi_rows;
-        /*
-        qpquals = list_concat(extract_nonindex_conditions(path->indexinfo->indrestrictinfo,
-                                                          path->indexclauses),
-                              extract_nonindex_conditions(path->path.param_info->ppi_clauses,
-                                                          path->indexclauses));
-                                                          */
-    }
-    else
-    {
-        path->path.rows = baserel->rows;
-    }
+    path->path.rows = baserel->rows;
 
     btcostestimate(root, path, loop_count, &indexStartupCost,
-                   &indexTotalCost, &indexSelectivity, &index_pages);
+                   &indexTotalCost, &indexSelectivity,
+                   &index_pages);
 
     path->indextotalcost = indexTotalCost;
     path->indexselectivity = indexSelectivity;
@@ -145,38 +128,20 @@ cost_index(IndexPath *path, PlannerInfo *root, double loop_count)
         }
     }
 
-    // TODO csquared
+    // TODO csquared 不打算做了
     run_cost += max_IO_cost;
 
-    // TODO cost_qual_eval
     startup_cost += qpqual_cost.startup;
     cpu_per_tuple = cpu_tuple_cost + qpqual_cost.per_tuple;
     cpu_run_cost += cpu_per_tuple * tuples_fetched;
 
-    // TODO pathtarget
+    startup_cost += path->path.pathtarget->cost.startup;
+    cpu_run_cost += path->path.pathtarget->cost. per_tuple * path->path.rows;
 
     run_cost += cpu_run_cost;
+
     path->path.startup_cost = startup_cost;
     path->path.total_cost = startup_cost + run_cost;
-}
-
-static List *
-extract_nonindex_conditions(List *qual_clauses, List *indexclauses)
-{
-    List       *result = NIL;
-    ListCell   *lc;
-
-    foreach(lc, qual_clauses)
-    {
-        RestrictInfo   *rinfo = lfirst_node(RestrictInfo, lc);
-
-        if (is_redundant_with_indexclauses(rinfo, indexclauses))
-        {
-            continue;
-        }
-        result = lappend(result, rinfo);
-    }
-    return result;
 }
 
 void
@@ -220,7 +185,8 @@ index_pages_fetched(double tuples_fetched, BlockNumber pages,
 
     if (T <= b)
     {
-        pages_fetched = (2.0 * T * tuples_fetched) / (2.0 * T + tuples_fetched);
+        pages_fetched =
+                (2.0 * T * tuples_fetched) / (2.0 * T + tuples_fetched);
         if (pages_fetched >= T)
         {
             pages_fetched = T;

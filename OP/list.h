@@ -93,7 +93,10 @@ extern List *lappend(List *list, void *datum);
 
 extern List *lcons(void *datum, List *list);
 
-extern List *list_copy_deep(const List *oldlist);
+extern List *list_delete_nth_cell(List *list, int n);
+extern List *list_delete_cell(List *list, ListCell *cell);
+
+extern void list_free(List *list);
 
 #define list_make_ptr_cell(v) ((ListCell) {.ptr_value = (v)})
 
@@ -103,6 +106,9 @@ extern List *list_copy_deep(const List *oldlist);
     list_make2_impl(T_List, list_make_ptr_cell(x1), list_make_ptr_cell(x2))
 
 #define foreach_current_index(cell) (cell##__state.i)
+#define foreach_delete_current(lst, cell) \
+    (cell##__state.i--,  \
+     (List *) (cell##__state.l = list_delete_cell(lst, cell)))
 
 static inline void *
 list_nth(const List *list, int n)

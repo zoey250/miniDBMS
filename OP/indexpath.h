@@ -7,13 +7,10 @@
 
 #include "list.h"
 
-// TODO maybe change
-#define INDEX_MAX_KEYS 32
-
 typedef struct
 {
     bool    nonempty;
-    List   *indexclauses[INDEX_MAX_KEYS];
+    List   *indexclauses;
 } IndexClauseSet;
 
 #endif //MICRODBMS_INDEXPATH_H
