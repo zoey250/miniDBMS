@@ -1,13 +1,8 @@
 //
 // Created by zoey on 23-5-17.
 //
-#include <algorithm>
-#include <set>
-#include "ql.h"
-#include "ql_iterator.h"
+#include "selectivity.h"
 
-//计算单表的选择度
-//输入: 表的序号relNum,简单条件列表 simpleConditions
 double calSimpleSelectivity(int relNum,  const std::vector<std::vector<QL_Condition>>& simpleConditions) {
     int numConditions = simpleConditions[relNum].size();
 
@@ -79,8 +74,6 @@ double calSimpleSelectivity(int relNum,  const std::vector<std::vector<QL_Condit
     return selectivity;
 }
 
-//计算连接的选择度
-//输入: 左关系的选择度, 右关系的选择度
 double calJoinSelectivity(double leftSelectivity, double rightSelectivity){
     // 取最小值作为连接后关系的选择率
     double joinSelectivity = std::min(leftSelectivity, rightSelectivity);
