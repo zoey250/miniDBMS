@@ -2,9 +2,9 @@
 // Created by elias on 23-4-30.
 //
 
-#include "c.h"
+#include "../utils/c.h"
 #include "cost.h"
-#include "list.h"
+#include "../utils/list.h"
 
 typedef enum
 {

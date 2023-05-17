@@ -6,7 +6,7 @@
 #define MICRODBMS_BITMAPSET_H
 
 #include "c.h"
-#include "nodes.h"
+#include "../OP/nodes.h"
 
 typedef enum
 {

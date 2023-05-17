@@ -5,7 +5,7 @@
 #ifndef MICRODBMS_ATTNUM_H
 #define MICRODBMS_ATTNUM_H
 
-#include "c.h"
+#include "../utils/c.h"
 
 typedef int16 AttrNumber;
 

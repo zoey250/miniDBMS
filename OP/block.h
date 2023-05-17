@@ -5,7 +5,7 @@
 #ifndef MICRODBMS_BLOCK_H
 #define MICRODBMS_BLOCK_H
 
-#include "c.h"
+#include "../utils/c.h"
 
 typedef uint32 BlockNumber;
 

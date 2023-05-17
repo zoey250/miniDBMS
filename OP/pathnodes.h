@@ -7,8 +7,8 @@
 #include "block.h"
 #include "attnum.h"
 #include "nodes.h"
-#include "list.h"
-#include "bitmapset.h"
+#include "../utils/list.h"
+#include "../utils/bitmapset.h"
 #include "primnodes.h"
 
 typedef Bitmapset *Relids;

@@ -6,7 +6,7 @@
 #define MICRODBMS_PRIMNODES_H
 
 #include "nodes.h"
-#include "ext.h"
+#include "../utils/ext.h"
 #include "pathnodes.h"
 #include "attnum.h"
 #include "../redbase.h"

@@ -5,7 +5,7 @@
 #ifndef MICRODBMS_INDEXPATH_H
 #define MICRODBMS_INDEXPATH_H
 
-#include "list.h"
+#include "../utils/list.h"
 
 typedef struct
 {
