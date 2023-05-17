@@ -54,6 +54,8 @@ file(GLOB C_SOURCE_FILES
         "PARSER/*.c"
         "OP/*.h"
         "OP/*.c"
+        "utils/*.h"
+        "utils/*.c"
         )
 
 file(GLOB CPP_SOURCE_FILES
@@ -73,6 +75,8 @@ file(GLOB CPP_SOURCE_FILES
         "PARSER/*.cc"
         "OP/*.h"
         "OP/*.cc"
+        "utils/*.h"
+        "utils/*.cc"
         )
 set(SOURCE_FILES
         ${C_SOURCE_FILES}
