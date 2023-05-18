@@ -15,6 +15,7 @@
 #define DEFAULT_CPU_OPERATOR_COST 0.0025
 #define DEFAULT_EFFECTIVE_CACHE_SIZE  524288
 
+extern void set_baserel_size_estimates(RelOptInfo *rel);
 extern double index_pages_fetched(double tuples_fetched, BlockNumber pages,
                                   double index_pages, PlannerInfo *root);
 extern void cost_seqscan(Path *path, RelOptInfo *baserel);

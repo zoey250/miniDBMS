@@ -9,6 +9,7 @@
 #include "ql.h"
 #include "ql_iterator.h"
 #include "ql_disjoint.h"
+#include "../OP/paths.h"
 
 /**
  * 构造函数
@@ -271,6 +272,13 @@ RC QL_Manager::Select(int nSelAttrs, const RelAttr *selAttrs,
             simpleProjections[i].clear();
     }
     VLOG(2) << "simple conditions and projections gathered";
+
+    PlannerInfo *root = init_planner_info(nSelAttrs, selAttrs,
+                                          nRelations, relations,
+                                          fileHandles, relEntries,
+                                          attrInfo, nConditions,
+                                          conditions);
+    cost_estimate(root);
 
     // helper functions
     std::vector<bool> filtered((unsigned long)nRelations);

@@ -10,6 +10,7 @@
 #include "../utils/list.h"
 #include "../utils/bitmapset.h"
 #include "primnodes.h"
+#include "parser.h"
 
 typedef Bitmapset *Relids;
 typedef struct Expr Expr;
@@ -36,20 +37,21 @@ typedef struct RelOptInfo
     NodeTag         type;
     Relids          relids;
 
-    Cardinality     rows;
-
     // __input__
+    const char     *name;
     List           *indexlist;
 
     BlockNumber     pages;
     Cardinality     tuples;
 
+    List           *baserestrictinfo;
     QualCost        baserestrictcost;   // TODO 默认为0
     Index           relid;
 
-    struct PathTarget  *reltarget;
+    RelAttr        *reltarget;
 
     // __output__
+    Cardinality     rows;
     List           *pathlist;
 
     struct Path    *cheapest_startup_path;
@@ -63,7 +65,7 @@ typedef struct Path
     NodeTag     pathtype;
 
     RelOptInfo *parent;
-    PathTarget *pathtarget;
+    RelAttr    *pathtarget;
     Cardinality rows;
     Cost        startup_cost;
     Cost        total_cost;

@@ -6,7 +6,7 @@
 #include <stddef.h>
 
 //生成索引文件名称
-static std::string filename_gen(const char* fileName, int indexNo) {
+std::string filename_gen(const char* fileName, int indexNo) {
     std::ostringstream oss;
     oss << fileName << "." << indexNo;
     return oss.str();

@@ -23,11 +23,15 @@ typedef enum NodeTag {
     T_IndexScan,
     T_RestrictInfo,
     T_Bitmapset,
+    T_PlannerInfo,
+    T_RelOptInfo,
+    T_IndexOptInfo,
 } NodeTag;
 
 typedef double Selectivity;
 typedef double Cost;
-typedef double Cardinality;
+// typedef double Cardinality;
+typedef long long int Cardinality;
 
 typedef struct Node
 {

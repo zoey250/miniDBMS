@@ -445,12 +445,6 @@ RC SM_Manager::CreateIndex(const char *relName, const char *attrName) {
     return 0;
 }
 
-static std::string filename_gen(const char* fileName, int indexNo) {
-    std::ostringstream oss;
-    oss << fileName << "." << indexNo;
-    return oss.str();
-}
-
 /**
  2. 销毁索引
  输入参数：relName关系名称，attrName属性名称

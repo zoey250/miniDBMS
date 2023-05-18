@@ -81,6 +81,10 @@ public:
     RC UpdateRec  (const RM_Record &rec);                               // 更新一条记录
 
     RC ForcePages (PageNum pageNum = ALL_PAGES);                        // 根据页号，将数据表的页回写磁盘
+
+    inline short getRecordPerPage() const{
+        return recordsPerPage;
+    }
 };
 
 //

@@ -13,6 +13,9 @@
 #define Max(x, y)   ((x) > (y) ? (x) : (y))
 #define Min(x, y)   ((x) < (y) ? (x) : (y))
 
+#define TYPEALIGN(ALIGNVAL,LEN)  \
+	(((uintptr_t) (LEN) + ((ALIGNVAL) - 1)) & ~((uintptr_t) ((ALIGNVAL) - 1)))
+
 typedef unsigned int Index;
 
 #ifndef HAVE_INT8

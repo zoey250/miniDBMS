@@ -135,8 +135,11 @@ cost_index(IndexPath *path, PlannerInfo *root, double loop_count)
     cpu_per_tuple = cpu_tuple_cost + qpqual_cost.per_tuple;
     cpu_run_cost += cpu_per_tuple * tuples_fetched;
 
+    /*
+     * TODO
     startup_cost += path->path.pathtarget->cost.startup;
     cpu_run_cost += path->path.pathtarget->cost. per_tuple * path->path.rows;
+     */
 
     run_cost += cpu_run_cost;
 
@@ -226,4 +229,16 @@ clamp_row_est(double nrows)
         nrows = rint(nrows);
     }
     return nrows;
+}
+
+void
+set_baserel_size_estimates(RelOptInfo *rel)
+{
+    double  nrows = 0.0;
+    double  selectivity = 1.0;
+
+    // TODO selectivity
+    nrows = selectivity * rel->tuples;
+
+    rel->rows = clamp_row_est(nrows);
 }

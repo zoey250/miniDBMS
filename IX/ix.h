@@ -181,6 +181,8 @@ public:
 
 //打印错误功能
 void IX_PrintError(RC rc);
+//生成索引文件名称
+extern std::string filename_gen(const char* fileName, int indexNo);
 
 #define IX_EOF                  (START_IX_WARN + 0)
 #define IX_ENTRY_EXISTS         (START_IX_WARN + 1)
