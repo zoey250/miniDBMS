@@ -1,6 +1,7 @@
 //
 // Created by elias on 23-4-30.
 //
+#include <math.h>
 #include "../utils/c.h"
 #include "pathnodes.h"
 #include "parser.h"
@@ -10,25 +11,28 @@
 
 static void set_rel_pathlist(PlannerInfo *root, RelOptInfo *rel);
 static void set_plain_rel_pathlist(PlannerInfo *root, RelOptInfo *rel);
-static List* init_index_list(RelOptInfo *rel, AttrList attrInfo);
+static List* init_index_list(RelOptInfo *rel,
+                             std::vector<std::pair<IX_IndexHandle, IndexOptInfo>> indexVector,
+                             std::vector<QL_Condition> simpleConditions);
 static void set_base_rel_sizes(PlannerInfo *root);
 static void set_base_rel_pathlists(PlannerInfo *root);
 
 PlannerInfo *
-init_planner_info(int nSelAttrs, const RelAttr *selAttrs,
+init_planner_info(AttrList finalProjections,
+                  std::vector<AttrList> simpleProjections,
                   int nRelations, const char *const *relations,
-                  const std::vector<RM_FileHandle> fileHandles,
+                  std::vector<RM_FileHandle> fileHandles,
                   std::vector<RelCatEntry> relEntries,
-                  std::vector<AttrList> attrInfo,
-                  int nConditions, const Condition *conditions)
+                  std::vector<std::vector<std::pair<IX_IndexHandle, IndexOptInfo>>> indexVector,
+                  std::vector<std::vector<QL_Condition>> simpleConditions)
 {
-    PlannerInfo    *root = (PlannerInfo *)malloc(sizeof(PlannerInfo));
+    PlannerInfo    *root = new PlannerInfo();
     root->type = T_PlannerInfo;
     root->simple_rel_array_size = nRelations;
     root->simple_rel_array = (RelOptInfo **) malloc(sizeof(RelOptInfo *) * (nRelations + 1));
     for (int i = 0; i < nRelations; ++i)
     {
-        RelOptInfo *rel = (RelOptInfo *) malloc(sizeof(RelOptInfo));
+        RelOptInfo *rel = new RelOptInfo;
         Cardinality tuples = relEntries[i].recordCount;
         short       recordPerPage = fileHandles[i].getRecordPerPage();
         BlockNumber pages = 0;
@@ -46,11 +50,16 @@ init_planner_info(int nSelAttrs, const RelAttr *selAttrs,
         rel->baserestrictcost = {.startup = 0, .per_tuple = 0};
         rel->relid = relid;
 
-        rel->indexlist = init_index_list(rel, attrInfo[i]);
-        // TODO reltarget and baserestrictinfo
+        rel->indexlist = init_index_list(rel,
+                                         indexVector[i],
+                                         simpleConditions[i]);
+        rel->conditions = simpleConditions[i];
+        rel->reltarget = simpleProjections[i];
 
+        rel->pathlist = NULL;
         root->simple_rel_array[i] = rel;
     }
+    root->finalProjections = finalProjections;
     return root;
 }
 
@@ -105,20 +114,50 @@ set_plain_rel_pathlist(PlannerInfo *root, RelOptInfo *rel)
 }
 
 static List*
-init_index_list(RelOptInfo *rel, AttrList attrInfo)
+init_index_list(RelOptInfo *rel,
+                std::vector<std::pair<IX_IndexHandle, IndexOptInfo>> indexVector,
+                std::vector<QL_Condition> simpleConditions)
 {
-    /*
-     * TODO finish index init
-    for (int i = 0; i < attrInfo.size(); ++i)
+    List   *list = NIL;
+    for (int i = 0; i < indexVector.size(); ++i)
     {
-        if (attrInfo[i].indexNo != -1)
-        {
-            IndexOptInfo   *indexInfo = (IndexOptInfo *) malloc(sizeof(IndexOptInfo));
+        IX_IndexHandle  indexHandle = indexVector[i].first;
+        IndexOptInfo    oldInfo = indexVector[i].second;
+        IndexOptInfo   *indexInfo = new IndexOptInfo;
 
-            indexInfo->type = T_IndexOptInfo;
-            indexInfo->rel = rel;
+        for (int j = 0; j < simpleConditions.size(); ++j)
+        {
+            if (strcmp(oldInfo.attrName, simpleConditions[j].lhsAttr.attrName) == 0)
+            {
+                if (strcmp(simpleConditions[j].lhsAttr.relName, oldInfo.relName) == 0)
+                {
+                    indexInfo->conditions.push_back(simpleConditions[j]);
+                }
+            }
         }
+
+        indexInfo->type = T_IndexOptInfo;
+        indexInfo->rel = rel;
+
+        int     bucketnum = rel->tuples / 2;
+        int     leafnum = bucketnum / indexHandle.getB();
+        int     treeheight = ceil(log(leafnum)/ log(indexHandle.getB()));
+        /*
+        int     pages = 1;
+        int     pages_per_layer = 1;
+        for (int j = 1; j < treeheight; ++j)
+        {
+             pages_per_layer *= indexHandle.getB();
+             pages += pages_per_layer;
+        }
+        indexInfo->pages = pages;
+         */
+        indexInfo->pages = leafnum;
+        indexInfo->tuples = rel->tuples;
+        indexInfo->tree_height = treeheight;
+        indexInfo->indexkey = oldInfo.indexkey;
+        indexInfo->unique = oldInfo.unique;
+        list = lappend(list, indexInfo);
     }
-    */
-    return NIL;
+    return list;
 }

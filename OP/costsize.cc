@@ -6,6 +6,7 @@
 #include "cost.h"
 #include "index_selfuncs.h"
 #include "optimizer.h"
+#include "selectivity.h"
 
 double seq_page_cost = DEFAULT_SEQ_PAGE_COST;
 double random_page_cost = DEFAULT_RANDOM_PAGE_COST;
@@ -89,27 +90,18 @@ cost_index(IndexPath *path, PlannerInfo *root, double loop_count)
 
     if (loop_count > 1)
     {
-        pages_fetched = index_pages_fetched(tuples_fetched * loop_count,
-                                            baserel->pages,
-                                            (double) index->pages,
-                                            root);
+        pages_fetched = index_pages_fetched(path, baserel->pages, (double) index->pages);
         rand_heap_pages = pages_fetched;
 
         max_IO_cost = (pages_fetched * spc_random_page_cost) / loop_count;
 
         pages_fetched = ceil(indexSelectivity * (double) baserel->pages);
-        pages_fetched = index_pages_fetched(pages_fetched * loop_count,
-                                            baserel->pages,
-                                            (double) index->pages,
-                                            root);
+        pages_fetched = index_pages_fetched(path, baserel->pages, (double) index->pages);
         min_IO_cost = (pages_fetched * spc_random_page_cost) / loop_count;
     }
     else
     {
-        pages_fetched = index_pages_fetched(tuples_fetched,
-                                            baserel->pages,
-                                            (double) index->pages,
-                                            root);
+        pages_fetched = index_pages_fetched(path, baserel->pages, (double) index->pages);
 
         rand_heap_pages = pages_fetched;
         max_IO_cost = pages_fetched * spc_random_page_cost;
@@ -128,18 +120,11 @@ cost_index(IndexPath *path, PlannerInfo *root, double loop_count)
         }
     }
 
-    // TODO csquared 不打算做了
     run_cost += max_IO_cost;
 
     startup_cost += qpqual_cost.startup;
     cpu_per_tuple = cpu_tuple_cost + qpqual_cost.per_tuple;
     cpu_run_cost += cpu_per_tuple * tuples_fetched;
-
-    /*
-     * TODO
-    startup_cost += path->path.pathtarget->cost.startup;
-    cpu_run_cost += path->path.pathtarget->cost. per_tuple * path->path.rows;
-     */
 
     run_cost += cpu_run_cost;
 
@@ -162,59 +147,13 @@ get_page_costs(double *spc_random_page_cost, double *spc_seq_page_cost)
 }
 
 double
-index_pages_fetched(double tuples_fetched, BlockNumber pages,
-                    double index_pages, PlannerInfo *root)
+index_pages_fetched(IndexPath *path, BlockNumber pages, double index_pages)
 {
-    double  pages_fetched;
-    double  total_pages;
-    double  T;
-    double  b;
-
-    T = (pages > 1) ? (double) pages : 1.0;
-
-    total_pages = root->total_table_pages + index_pages;
-    total_pages = Max(total_pages, 1.0);
-
-    b = (double) effective_cache_size * T / total_pages;
-
-    if (b <= 1.0)
+    if (path->indexinfo->flag)
     {
-        b = 1.0;
+        return 2;
     }
-    else
-    {
-        b = ceil(b);
-    }
-
-    if (T <= b)
-    {
-        pages_fetched =
-                (2.0 * T * tuples_fetched) / (2.0 * T + tuples_fetched);
-        if (pages_fetched >= T)
-        {
-            pages_fetched = T;
-        }
-        else
-        {
-            pages_fetched = ceil(pages_fetched);
-        }
-    }
-    else
-    {
-        double  lim;
-
-        lim = (2.0 * T * b) / (2.0 * T - b);
-        if (tuples_fetched <= lim)
-        {
-            pages_fetched = (2.0 * T * tuples_fetched) / (2.0 * T + tuples_fetched);
-        }
-        else
-        {
-            pages_fetched = b + (tuples_fetched - lim) * (T - b) / T;
-        }
-        pages_fetched = ceil(pages_fetched);
-    }
-    return pages_fetched;
+    return index_pages * path->indexselectivity + pages;
 }
 
 double
@@ -237,7 +176,7 @@ set_baserel_size_estimates(RelOptInfo *rel)
     double  nrows = 0.0;
     double  selectivity = 1.0;
 
-    // TODO selectivity
+    selectivity = calSingleRelSelectivity(rel->conditions);
     nrows = selectivity * rel->tuples;
 
     rel->rows = clamp_row_est(nrows);

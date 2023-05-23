@@ -10,6 +10,7 @@
 #include "ql_iterator.h"
 #include "ql_disjoint.h"
 #include "../OP/paths.h"
+#include "string.h"
 
 /**
  * 构造函数
@@ -261,23 +262,53 @@ RC QL_Manager::Select(int nSelAttrs, const RelAttr *selAttrs,
             simpleProjectionNames[lhsAttrNum].insert(std::string(lhsAttr.attrName));
         }
     }
+    std::vector<std::vector<std::pair<IX_IndexHandle, IndexOptInfo>>> indexVector((unsigned long) nRelations);
     for (int i = 0; i < nRelations; ++i) {
         for (auto attrName : simpleProjectionNames[i])
-            simpleProjections[i].push_back(attrMap[AttrTag(relations[i], attrName)]);
+        {
+            DataAttrInfo attrDataInfo = attrMap[AttrTag(relations[i], attrName)];
+            if (attrDataInfo.indexNo != -1)
+            {
+                IX_IndexHandle  indexHandle;
+                IndexOptInfo    indexInfo;
+
+                for (int j = 0; j < attrInfo[i].size(); ++j)
+                {
+                    if (strcmp(attrInfo[i][j].attrName, attrDataInfo.attrName) == 0)
+                    {
+                        indexInfo.indexkey = j;
+                        strcpy(indexInfo.relName, attrDataInfo.relName);
+                        strcpy(indexInfo.attrName, attrDataInfo.attrName);
+                        break;
+                    }
+                }
+
+                TRY(pIxm->OpenIndex(relations[i], attrDataInfo.indexNo, indexHandle));
+
+                indexInfo.unique = attrDataInfo.attrSpecs & ATTR_SPEC_PRIMARYKEY;
+                indexVector[i].emplace_back(indexHandle, indexInfo);
+
+                TRY(pIxm->CloseIndex(indexHandle));
+            }
+            simpleProjections[i].push_back(attrDataInfo);
+        }
         sort(simpleProjections[i].begin(), simpleProjections[i].end(),
-             [](const DataAttrInfo &lhs, const DataAttrInfo &rhs) {
-                 return lhs.offset < rhs.offset;
-             });
+                 [](const DataAttrInfo &lhs, const DataAttrInfo &rhs) {
+                     return lhs.offset < rhs.offset;
+                 });
         if (simpleProjections[i] == attrInfo[i])
             simpleProjections[i].clear();
     }
     VLOG(2) << "simple conditions and projections gathered";
 
-    PlannerInfo *root = init_planner_info(nSelAttrs, selAttrs,
-                                          nRelations, relations,
-                                          fileHandles, relEntries,
-                                          attrInfo, nConditions,
-                                          conditions);
+    PlannerInfo *root = init_planner_info(finalProjections,
+                                          simpleProjections,
+                                          nRelations,
+                                          relations,
+                                          fileHandles,
+                                          relEntries,
+                                          indexVector,
+                                          simpleConditions);
     cost_estimate(root);
 
     // helper functions

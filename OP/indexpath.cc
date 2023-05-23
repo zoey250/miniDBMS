@@ -25,15 +25,14 @@ static IndexClause *match_opclause_to_indexcol(PlannerInfo *root,
                                                RestrictInfo *rinfo,
                                                IndexOptInfo *index);
 static void get_index_paths(PlannerInfo *root, RelOptInfo *rel,
-                            IndexOptInfo *index, IndexClauseSet *clauses);
-static List *build_index_paths(PlannerInfo *root, IndexOptInfo *index,
-                               IndexClauseSet *clauses);
+                            IndexOptInfo *index);
+static List *build_index_paths(PlannerInfo *root, IndexOptInfo *index);
 static double get_loop_count();
 
 void
 create_index_paths(PlannerInfo *root, RelOptInfo *rel)
 {
-    IndexClauseSet  rclauseset;
+//    IndexClauseSet  rclauseset;
     ListCell   *lc;
 
     if (rel->indexlist == NIL)
@@ -45,10 +44,10 @@ create_index_paths(PlannerInfo *root, RelOptInfo *rel)
     {
         IndexOptInfo   *index = (IndexOptInfo *) lfirst(lc);
 
-        memset(&rclauseset, 0, sizeof(rclauseset));
-        match_restriction_clauses_to_index(root, index, &rclauseset);
-
-        get_index_paths(root, rel, index, &rclauseset);
+//        memset(&rclauseset, 0, sizeof(rclauseset));
+//        match_restriction_clauses_to_index(root, index, &rclauseset);
+//
+        get_index_paths(root, rel, index);
     }
 }
 
@@ -184,12 +183,12 @@ match_opclause_to_indexcol(PlannerInfo *root,
 
 static void
 get_index_paths(PlannerInfo *root, RelOptInfo *rel,
-                IndexOptInfo *index, IndexClauseSet *clauses)
+                IndexOptInfo *index)
 {
     List       *indexpaths;
     ListCell   *lc;
 
-    indexpaths = build_index_paths(root, index, clauses);
+    indexpaths = build_index_paths(root, index);
 
     foreach(lc, indexpaths)
     {
@@ -201,32 +200,20 @@ get_index_paths(PlannerInfo *root, RelOptInfo *rel,
 
 static List *
 build_index_paths(PlannerInfo *root,
-                  IndexOptInfo *index,
-                  IndexClauseSet *clauses)
+                  IndexOptInfo *index)
 {
     List       *result = NIL;
     IndexPath  *ipath;
-    List       *index_clauses;
     double      loop_count;
-    ListCell   *lc;
 
-    index_clauses = NIL;
-
-    foreach(lc, clauses->indexclauses)
-    {
-        IndexClause    *iclause = (IndexClause *) lfirst(lc);
-
-        index_clauses = lappend(index_clauses, iclause);
-    }
-
-    if (index_clauses == NIL)
+    if (index->conditions.empty())
     {
         return NIL;
     }
 
     loop_count = get_loop_count();
 
-    ipath = create_index_path(root, index, index_clauses, loop_count);
+    ipath = create_index_path(root, index, loop_count);
     result = lappend(result, ipath);
 
     return result;

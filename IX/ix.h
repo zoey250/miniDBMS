@@ -141,6 +141,10 @@ public:
 
     RC Traverse(int nodeNum = 0,
                 int depth = 0);
+    inline int getB()
+    {
+        return b;
+    }
 };
 
 //基于条件的索引项扫描

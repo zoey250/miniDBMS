@@ -11,6 +11,7 @@
 #include "../utils/bitmapset.h"
 #include "primnodes.h"
 #include "parser.h"
+#include "ql_internal.h"
 
 typedef Bitmapset *Relids;
 typedef struct Expr Expr;
@@ -23,7 +24,8 @@ struct PlannerInfo
 
     int         simple_rel_array_size;
     struct RelOptInfo **simple_rel_array;
-    Cardinality total_table_pages;
+
+    AttrList    finalProjections;
 };
 
 typedef struct QualCost
@@ -44,11 +46,12 @@ typedef struct RelOptInfo
     BlockNumber     pages;
     Cardinality     tuples;
 
-    List           *baserestrictinfo;
-    QualCost        baserestrictcost;   // TODO 默认为0
+//    List           *baserestrictinfo;
+    std::vector<QL_Condition> conditions;
+    QualCost        baserestrictcost;
     Index           relid;
 
-    RelAttr        *reltarget;
+    AttrList        reltarget;
 
     // __output__
     Cardinality     rows;
@@ -65,7 +68,7 @@ typedef struct Path
     NodeTag     pathtype;
 
     RelOptInfo *parent;
-    RelAttr    *pathtarget;
+    AttrList    pathtarget;
     Cardinality rows;
     Cost        startup_cost;
     Cost        total_cost;
@@ -90,6 +93,10 @@ struct IndexOptInfo
     NodeTag     type;
 
     RelOptInfo *rel;
+
+    char        relName[MAXNAME + 1];
+    char        attrName[MAXNAME + 1];
+
     BlockNumber pages;
     Cardinality tuples;
 
@@ -98,8 +105,10 @@ struct IndexOptInfo
     int        indexkey;
 
     List       *indrestrictinfo;
+    std::vector<QL_Condition> conditions;
 
     bool        unique;
+    bool        flag = false;
 };
 
 typedef struct IndexClause
@@ -128,7 +137,6 @@ typedef struct IndexPath
 {
     Path        path;
     IndexOptInfo   *indexinfo;
-    List       *indexclauses;
     Cost        indextotalcost;
     Selectivity indexselectivity;
 } IndexPath;
@@ -145,6 +153,6 @@ extern Path *create_seqscan_path(RelOptInfo *rel);
 extern void create_index_paths(PlannerInfo *root, RelOptInfo *rel);
 extern int compare_path_costs(Path *path1, Path *path2, CostSelect criterion);
 extern IndexPath *create_index_path(PlannerInfo *root, IndexOptInfo *index,
-                                    List *indexclauses, double loop_count);
+                                    double loop_count);
 
 #endif //MICRODBMS_PATHNODES_H

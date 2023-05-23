@@ -16,8 +16,7 @@
 #define DEFAULT_EFFECTIVE_CACHE_SIZE  524288
 
 extern void set_baserel_size_estimates(RelOptInfo *rel);
-extern double index_pages_fetched(double tuples_fetched, BlockNumber pages,
-                                  double index_pages, PlannerInfo *root);
+extern double index_pages_fetched(IndexPath *path, BlockNumber pages, double index_pages);
 extern void cost_seqscan(Path *path, RelOptInfo *baserel);
 extern void cost_index(IndexPath *path, PlannerInfo *root,
                        double loop_count);

@@ -6,6 +6,7 @@
 #include "index_selfuncs.h"
 #include "selfuncs.h"
 #include "optimizer.h"
+#include "selectivity.h"
 
 #define BTLessStrategyNumber			1
 #define BTLessEqualStrategyNumber		2
@@ -14,6 +15,7 @@
 #define BTGreaterStrategyNumber			5
 
 static int get_op_strategy(CompOp opno);
+static Selectivity btselectivityestimate();
 
 void
 btcostestimate(struct PlannerInfo *root, struct IndexPath *path,
@@ -27,51 +29,30 @@ btcostestimate(struct PlannerInfo *root, struct IndexPath *path,
     AttrNumber      colnum;
     double          numIndexTuples;
     Cost            desccentCost;
-    List           *indexBoundQuals;
-    ListCell       *lc;
     bool            eqQualHere;
 
-    foreach(lc, path->indexclauses)
+    for (int i = 0; i < path->indexinfo->conditions.size(); ++i)
     {
-        IndexClause    *iclause = lfirst_node(IndexClause, lc);
-        ListCell       *lc2;
+        int             op_strategy;
 
-        foreach(lc2, iclause->indexquals)
+        op_strategy = get_op_strategy(path->indexinfo->conditions[i].op);
+        if (op_strategy == BTEqualStrategyNumber)
         {
-            RestrictInfo   *rinfo = lfirst_node(RestrictInfo, lc2);
-            Expr           *clause = rinfo->clause;
-            CompOp             clause_op;
-            int             op_strategy;
-
-            // TODO maybe, it must be OpExpr.
-            if (IsA(clause, OpExpr))
-            {
-                OpExpr *op = (OpExpr *) clause;
-                clause_op = op->opno;
-            }
-
-            op_strategy = get_op_strategy(clause_op);
-            if (op_strategy == BTEqualStrategyNumber)
-            {
-                eqQualHere = true;
-            }
-
-            indexBoundQuals = lappend(indexBoundQuals, rinfo);
+            eqQualHere = true;
         }
     }
 
     if (index->unique && eqQualHere)
     {
+        index->flag = true;
         numIndexTuples = 1.0;
+        costs.indexSelectivity = 1.0 / path->indexinfo->tuples;
     }
     else
     {
-        List   *selectivityQuals;
-        Selectivity btreeSelectivity;
+        Selectivity btreeSelectivity = 1.0;
 
-        selectivityQuals = indexBoundQuals;
-
-        // TODO selectivity
+        btreeSelectivity = calSingleRelSelectivity(path->indexinfo->conditions);
 
         numIndexTuples = btreeSelectivity * index->rel->tuples;
     }
@@ -88,6 +69,7 @@ btcostestimate(struct PlannerInfo *root, struct IndexPath *path,
     desccentCost = (index->tree_height + 1) * 50.0 * cpu_operator_cost;
     costs.indexStartupCost += desccentCost;
     costs.indexTotalCost += desccentCost;
+    path->path.rows = numIndexTuples;
 
     *indexStartupCost = costs.indexStartupCost;
     *indexTotalCost = costs.indexTotalCost;
@@ -100,21 +82,17 @@ genericcostestimate(PlannerInfo *root, IndexPath *path,
                     double loop_count, GenericCosts *costs)
 {
     IndexOptInfo   *index = path->indexinfo;
-    List           *indexQuals = get_quals_from_indexclauses(path->indexclauses);
     Cost            indexStartupCost;
     Cost            indexTotalCost;
-    Selectivity     indexSelectivity;
+    Selectivity     indexSelectivity = 1.0;
     double          numIndexPages;
     double          numIndexTuples;
     double          spc_random_page_cost;
     double          num_outer_scans;
     double          num_scans;
     double          qual_op_cost;
-    List           *selectivityQuals;
 
-    selectivityQuals = indexQuals;
-
-    // TODO indexSelectivity
+    indexSelectivity = calSingleRelSelectivity(path->indexinfo->conditions);
 
     numIndexTuples = costs->numIndexTuples;
     if (numIndexTuples <= 0.0)
@@ -148,10 +126,7 @@ genericcostestimate(PlannerInfo *root, IndexPath *path,
     {
         double      pages_fetched;
         pages_fetched = numIndexPages * num_scans;
-        pages_fetched = index_pages_fetched(pages_fetched,
-                                            index->pages,
-                                            (double) index->pages,
-                                            root);
+        pages_fetched = index_pages_fetched(path, index->pages, (double) index->pages);
         indexTotalCost = (pages_fetched * spc_random_page_cost)
                 / num_outer_scans;
     }
@@ -160,15 +135,19 @@ genericcostestimate(PlannerInfo *root, IndexPath *path,
         indexTotalCost = numIndexTuples * spc_random_page_cost;
     }
 
-    qual_op_cost = cpu_operator_cost * list_length(indexQuals);
+    qual_op_cost = cpu_operator_cost * path->indexinfo->conditions.size();
 
     indexStartupCost = 0;
     indexTotalCost += numIndexTuples * (cpu_index_tuple_cost + qual_op_cost);
 
     costs->indexStartupCost = indexStartupCost;
     costs->indexTotalCost = indexTotalCost;
-    costs->indexSelectivity = indexSelectivity;
-    costs->numIndexPages = numIndexPages;
+    costs->numIndexPages = 1.0;
+    if (costs->indexSelectivity == 0.0)
+    {
+        costs->indexSelectivity = indexSelectivity;
+        costs->numIndexPages = numIndexPages;
+    }
     costs->numIndexTuples = numIndexTuples;
     costs->spc_random_page_cost = spc_random_page_cost;
 }
@@ -219,4 +198,10 @@ get_op_strategy(CompOp opno)
             break;
     }
     return result;
+}
+
+static Selectivity
+btselectivityestimate(IndexPath *path)
+{
+
 }

@@ -5,17 +5,20 @@
 #ifndef MICRODBMS_PATHS_H
 #define MICRODBMS_PATHS_H
 
+#include <set>
 #include "pathnodes.h"
 #include "rm.h"
 #include "sm_catalog.h"
 #include "ql_internal.h"
+#include "ix.h"
 
-extern PlannerInfo *init_planner_info(int nSelAttrs, const RelAttr *selAttrs,
-                  int nRelations, const char *const *relations,
-                  const std::vector<RM_FileHandle> fileHandles,
-                  std::vector<RelCatEntry> relEntries,
-                  std::vector<AttrList> attrInfo,
-                  int nConditions, const Condition *conditions);
+extern PlannerInfo *init_planner_info(AttrList finalProjections,
+                                      std::vector<AttrList> simpleProjections,
+                                      int nRelations, const char *const *relations,
+                                      std::vector<RM_FileHandle> fileHandles,
+                                      std::vector<RelCatEntry> relEntries,
+                                      std::vector<std::vector<std::pair<IX_IndexHandle, IndexOptInfo>>> indexVector,
+                                      std::vector<std::vector<QL_Condition>> simpleConditions);
 
 extern void cost_estimate(PlannerInfo *root);
 

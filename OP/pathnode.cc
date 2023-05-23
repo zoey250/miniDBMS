@@ -113,7 +113,7 @@ add_path(RelOptInfo *parent_rel, Path *new_path)
                     }
                     break;
                 case COSTS_BETTER2:
-                    if ( new_path->rows >= old_path->rows)
+                    if (new_path->rows >= old_path->rows)
                     {
                         accept_new = false;
                     }
@@ -219,7 +219,7 @@ compare_path_costs(Path *path1, Path *path2, CostSelect criterion)
 
 IndexPath *
 create_index_path(PlannerInfo *root, IndexOptInfo *index,
-                  List *indexclauses, double loop_count)
+                  double loop_count)
 {
     IndexPath  *pathnode = makeNode(IndexPath);
     RelOptInfo *rel = index->rel;
@@ -229,7 +229,6 @@ create_index_path(PlannerInfo *root, IndexOptInfo *index,
     pathnode->path.pathtarget = rel->reltarget;
 
     pathnode->indexinfo = index;
-    pathnode->indexclauses = indexclauses;
 
     cost_index(pathnode, root, loop_count);
 
@@ -260,6 +259,7 @@ compare_path_costs_fuzzily(Path *path1, Path *path2, double fuzz_factor)
     {
         return COSTS_BETTER2;
     }
+
     if (path2->startup_cost > path1->startup_cost * fuzz_factor)
     {
         return COSTS_BETTER1;
