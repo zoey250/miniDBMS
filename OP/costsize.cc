@@ -17,6 +17,8 @@ double cpu_operator_cost = DEFAULT_CPU_OPERATOR_COST;
 
 int effective_cache_size = DEFAULT_EFFECTIVE_CACHE_SIZE;
 
+static void cost_rescan(Path *path, Cost *rescan_startup_cost, Cost *rescan_total_cost);
+
 void
 cost_seqscan(Path *path, RelOptInfo *baserel)
 {
@@ -180,4 +182,69 @@ set_baserel_size_estimates(RelOptInfo *rel)
     nrows = selectivity * rel->tuples;
 
     rel->rows = clamp_row_est(nrows);
+}
+
+void
+cost_nestloop(NestPath *path)
+{
+    Path   *outer_path = path->jpath.outerjoinpath;
+    Path   *inner_path = path->jpath.innerjoinpath;
+    Cost    inner_rescan_start_cost;
+    Cost    inner_rescan_total_cost;
+    Cost    inner_run_cost;
+    Cost    inner_rescan_run_cost;
+
+    Cost    cpu_per_tuple;
+
+    Cost    startup_cost = 0;
+    Cost    run_cost = 0;
+
+    Cardinality outer_path_rows = outer_path->rows;
+    Cardinality inner_path_rows = inner_path->rows;
+    Cardinality ntuples;
+
+    if (outer_path_rows <= 0)
+    {
+        outer_path_rows = 1;
+    }
+    if (inner_path_rows <= 0)
+    {
+        inner_path_rows = 1;
+    }
+
+    cost_rescan(inner_path,
+                &inner_rescan_start_cost,
+                &inner_rescan_total_cost);
+
+    startup_cost += outer_path->startup_cost + inner_path->startup_cost;
+    run_cost += outer_path->total_cost - outer_path->startup_cost;
+
+    if (outer_path_rows > 1)
+    {
+        run_cost +=  inner_rescan_start_cost * (outer_path_rows - 1);
+    }
+
+    inner_run_cost = inner_path->total_cost - inner_path->startup_cost;
+    inner_rescan_run_cost = inner_rescan_total_cost - inner_rescan_start_cost;
+
+    run_cost += inner_run_cost;
+    if (outer_path_rows > 1)
+    {
+        run_cost += inner_rescan_run_cost * (outer_path_rows - 1);
+    }
+    ntuples = outer_path_rows * inner_path_rows;
+
+    cpu_per_tuple = cpu_tuple_cost;
+    run_cost += cpu_per_tuple * ntuples;
+
+    path->jpath.path.startup_cost = startup_cost;
+    path->jpath.path.total_cost = startup_cost + run_cost;
+    path->jpath.path.rows = ntuples;
+}
+
+static void
+cost_rescan(Path *path, Cost *rescan_startup_cost, Cost *rescan_total_cost)
+{
+    *rescan_startup_cost = path->startup_cost;
+    *rescan_total_cost = path->total_cost;
 }

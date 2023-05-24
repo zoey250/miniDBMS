@@ -141,6 +141,19 @@ typedef struct IndexPath
     Selectivity indexselectivity;
 } IndexPath;
 
+typedef struct JoinPath
+{
+    Path    path;
+    Path   *outerjoinpath;
+    Path   *innerjoinpath;
+
+} JoinPath;
+
+typedef struct NestPath
+{
+    JoinPath    jpath;
+} NestPath;
+
 typedef struct PathTarget
 {
     NodeTag     type;

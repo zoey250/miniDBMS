@@ -26,12 +26,14 @@ typedef enum NodeTag {
     T_PlannerInfo,
     T_RelOptInfo,
     T_IndexOptInfo,
+    T_NestPath,
+    T_NestLoop,
 } NodeTag;
 
 typedef double Selectivity;
 typedef double Cost;
-// typedef double Cardinality;
-typedef long long int Cardinality;
+typedef double Cardinality;
+//typedef long long int Cardinality;
 
 typedef struct Node
 {

@@ -139,7 +139,7 @@ init_index_list(RelOptInfo *rel,
         indexInfo->type = T_IndexOptInfo;
         indexInfo->rel = rel;
 
-        int     bucketnum = rel->tuples / 2;
+        int     bucketnum = (int) rel->tuples / 2;
         int     leafnum = bucketnum / indexHandle.getB();
         int     treeheight = ceil(log(leafnum)/ log(indexHandle.getB()));
         /*
