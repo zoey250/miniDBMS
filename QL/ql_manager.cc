@@ -308,7 +308,8 @@ RC QL_Manager::Select(int nSelAttrs, const RelAttr *selAttrs,
                                           fileHandles,
                                           relEntries,
                                           indexVector,
-                                          simpleConditions);
+                                          simpleConditions,
+                                          complexConditions);
     cost_estimate(root);
 
     // helper functions

@@ -18,6 +18,8 @@ double cpu_operator_cost = DEFAULT_CPU_OPERATOR_COST;
 int effective_cache_size = DEFAULT_EFFECTIVE_CACHE_SIZE;
 
 static void cost_rescan(Path *path, Cost *rescan_startup_cost, Cost *rescan_total_cost);
+static Cardinality cal_nrows(NestPath *path, Cardinality ntuples);
+static inline bool is_leaf(Path *path);
 
 void
 cost_seqscan(Path *path, RelOptInfo *baserel)
@@ -202,6 +204,7 @@ cost_nestloop(NestPath *path)
     Cardinality outer_path_rows = outer_path->rows;
     Cardinality inner_path_rows = inner_path->rows;
     Cardinality ntuples;
+    Cardinality nrows;
 
     if (outer_path_rows <= 0)
     {
@@ -237,9 +240,11 @@ cost_nestloop(NestPath *path)
     cpu_per_tuple = cpu_tuple_cost;
     run_cost += cpu_per_tuple * ntuples;
 
+    nrows = cal_nrows(path, ntuples);
+
     path->jpath.path.startup_cost = startup_cost;
     path->jpath.path.total_cost = startup_cost + run_cost;
-    path->jpath.path.rows = ntuples;
+    path->jpath.path.rows = nrows;
 }
 
 static void
@@ -247,4 +252,39 @@ cost_rescan(Path *path, Cost *rescan_startup_cost, Cost *rescan_total_cost)
 {
     *rescan_startup_cost = path->startup_cost;
     *rescan_total_cost = path->total_cost;
+}
+
+static Cardinality
+cal_nrows(NestPath *path, Cardinality ntuples)
+{
+    Path   *inner_path = path->jpath.outerjoinpath;
+    Path   *outer_path = path->jpath.innerjoinpath;
+    Selectivity inner_selectivity = 1.0;
+    Selectivity outer_selectivity = 1.0;
+    Selectivity selectivity = 1.0;
+
+    if (is_leaf(inner_path))
+    {
+        inner_selectivity = calSingleRelSelectivity(inner_path->parent->complexconditions);
+    }
+
+    if (is_leaf(outer_path))
+    {
+        outer_selectivity = calSingleRelSelectivity(outer_path->parent->complexconditions);
+    }
+
+    selectivity = calJoinSelectivity(outer_selectivity, inner_selectivity);
+
+    return ntuples * selectivity;
+}
+
+static inline bool
+is_leaf(Path *path)
+{
+    if (path->pathtype == T_SeqScan ||
+        path->pathtype == T_IndexScan)
+    {
+        return true;
+    }
+    return false;
 }

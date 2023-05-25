@@ -24,7 +24,8 @@ init_planner_info(AttrList finalProjections,
                   std::vector<RM_FileHandle> fileHandles,
                   std::vector<RelCatEntry> relEntries,
                   std::vector<std::vector<std::pair<IX_IndexHandle, IndexOptInfo>>> indexVector,
-                  std::vector<std::vector<QL_Condition>> simpleConditions)
+                  std::vector<std::vector<QL_Condition>> simpleConditions,
+                  std::vector<QL_Condition> complexConditions)
 {
     PlannerInfo    *root = new PlannerInfo();
     root->type = T_PlannerInfo;
@@ -41,6 +42,15 @@ init_planner_info(AttrList finalProjections,
 
         pages = (tuples + recordPerPage - 1) / recordPerPage;
         relids = bms_add_member(relids, relid);
+
+        for (auto condition : complexConditions)
+        {
+            if (strcmp(relations[i], condition.lhsAttr.relName) == 0 ||
+                strcmp(relations[i], condition.rhsAttr.relName) == 0)
+            {
+                rel->complexconditions.push_back(condition);
+            }
+        }
 
         rel->type = T_RelOptInfo;
         rel->relids = relids;

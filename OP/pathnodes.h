@@ -48,6 +48,7 @@ typedef struct RelOptInfo
 
 //    List           *baserestrictinfo;
     std::vector<QL_Condition> conditions;
+    std::vector<QL_Condition> complexconditions;
     QualCost        baserestrictcost;
     Index           relid;
 
