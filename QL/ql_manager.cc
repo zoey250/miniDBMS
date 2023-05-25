@@ -12,6 +12,8 @@
 #include "../OP/paths.h"
 #include "string.h"
 
+static void clean(PlannerInfo *root);
+
 /**
  * 构造函数
  */
@@ -509,6 +511,7 @@ RC QL_Manager::Select(int nSelAttrs, const RelAttr *selAttrs,
     }
     printer.PrintFooter(std::cout);
 
+    clean(root);
     return 0;
 }
 
@@ -1042,4 +1045,28 @@ bool checkSatisfy(char *data, bool *isnull, const QL_Condition &condition) {
                             condition.rhsValue.type == VT_NULL,
                             condition);
     }
+}
+
+static void
+clean(PlannerInfo *root)
+{
+    for (int i = 0; i < root->simple_rel_array_size; ++i)
+    {
+        RelOptInfo *rel = root->simple_rel_array[i];
+
+        ListCell   *lc;
+        foreach(lc, rel->indexlist)
+        {
+            foreach_delete_current(rel->indexlist, lc);
+        }
+
+        foreach(lc, rel->pathlist)
+        {
+            foreach_delete_current(rel->pathlist, lc);
+        }
+        delete rel;
+    }
+    free(root->simple_rel_array);
+    root->simple_rel_array = NULL;
+    delete root;
 }
