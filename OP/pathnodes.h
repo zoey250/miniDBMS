@@ -146,7 +146,9 @@ typedef struct JoinPath
 {
     Path    path;
     Path   *outerjoinpath;
+    std::vector<QL_Condition> outercomplexconditions;
     Path   *innerjoinpath;
+    std::vector<QL_Condition> innercomplexconditions;
 
 } JoinPath;
 
