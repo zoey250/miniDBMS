@@ -15,9 +15,11 @@
 
 #include "../SM/sm.h"
 #include "../QL/ql.h"
+#include "../statistics/statistics.h"
 
 extern SM_Manager *pSmm;
 extern QL_Manager *pQlm;
+extern SS_Manager *pSsm;
 
 #define E_OK                0
 #define E_INCOMPATIBLE      -1
@@ -378,6 +380,10 @@ RC interp(NODE *n) {
                               rhsRelAttr, rhsValue, nConditions, conditions);
         break;
     }
+
+    case N_ANALYZE:
+        errval = pSsm->AnalyzeTable(n->u.ANALYZE.relname);
+        break;
 
     default:   // should never get here
         break;

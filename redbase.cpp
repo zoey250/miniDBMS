@@ -6,6 +6,7 @@
 
 #include <glog/logging.h>
 #include "gflags/gflags.h"
+#include "statistics/statistics.h"
 
 DEFINE_string(c, "-",
         "batch mode rather than interactive mode.\n" \
@@ -21,6 +22,7 @@ RM_Manager rmm(pfm);
 IX_Manager ixm(pfm);
 SM_Manager smm(ixm, rmm);
 QL_Manager qlm(smm, ixm, rmm);
+SS_Manager ssm(qlm, smm, ixm, rmm);
 
 extern FILE* yyin;
 extern bool output_prompt;
@@ -41,7 +43,7 @@ int main(int argc, char *argv[]) {
         output_prompt = true;
     }
 
-    RBparse(pfm, smm, qlm);
+    RBparse(pfm, smm, qlm, ssm);
 
     if (yyin != stdin) {
         fclose(yyin);

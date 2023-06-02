@@ -50,7 +50,8 @@ typedef enum {
     N_VALUE,
     N_RELATION,
     N_STATISTICS,
-    N_LIST
+    N_LIST,
+    N_ANALYZE,
 } NODEKIND;
 
 
@@ -184,6 +185,11 @@ typedef struct node {
             struct node *curr;
             struct node *next;
         } LIST;
+
+        /* analyze node */
+        struct {
+            char *relname;
+        } ANALYZE;
     } u;
 } NODE;
 
@@ -217,6 +223,7 @@ NODE *relation_node(char *relname);
 NODE *list_node(NODE *n);
 NODE *prepend(NODE *n, NODE *list);
 NODE *prepend_list(NODE *l, NODE* list);
+NODE *analyze_table_node(char *relname);
 
 #ifdef __cplusplus
 extern "C" void reset_scanner(void);

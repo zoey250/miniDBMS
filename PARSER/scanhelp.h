@@ -78,6 +78,8 @@ static int get_id(char *s) {
     if ((len = lower(string, s, MAXSTRINGLEN)) == MAXSTRINGLEN)
         return NOTOKEN;
 
+    if (!strcmp(string, "analyze"))
+        return yylval.ival = RW_ANALYZE;
     /*  SM layer lexemes */
 
     if (!strcmp(string, "create"))

@@ -65,8 +65,9 @@ std::ostream &operator<<(std::ostream &s, const AttrType &at);
 class PF_Manager;
 class QL_Manager;
 class SM_Manager;
+class SS_Manager;
 
-void RBparse(PF_Manager &pfm, SM_Manager &smm, QL_Manager &qlm);
+void RBparse(PF_Manager &pfm, SM_Manager &smm, QL_Manager &qlm, SS_Manager &ssm);
 #endif
 
 //错误打印功能； 调用特定于组件的功能

@@ -28,6 +28,7 @@
 #include "../IX/ix.h"     // for IX_PrintError
 #include "../SM/sm.h"
 #include "../QL/ql.h"
+#include "../statistics/statistics.h"
 
 using namespace std;
 
@@ -65,6 +66,7 @@ int bQueryPlans;           // When to print the query plans
 PF_Manager *pPfm;          // PF component manager
 SM_Manager *pSmm;          // SM component manager
 QL_Manager *pQlm;          // QL component manager
+SS_Manager *pSsm;
 
 %}
 
@@ -106,6 +108,7 @@ QL_Manager *pQlm;          // QL component manager
       RW_NULL
       RW_IS
       RW_DESC
+      RW_ANALYZE
       T_EQ
       T_LT
       T_LE
@@ -173,6 +176,7 @@ QL_Manager *pQlm;          // QL component manager
       buffer
       statistics
       queryplans
+      analyze
 %%
 
 start
@@ -242,7 +246,8 @@ utility
    | print
    | buffer
    | statistics 
-   | queryplans 
+   | queryplans
+   | analyze
    ;
 
 queryplans
@@ -304,6 +309,13 @@ statistics
          cout << "Statitisics not compiled.\n";
       #endif
       $$ = NULL;
+   }
+   ;
+
+analyze
+   : RW_ANALYZE RW_TABLE T_STRING
+   {
+      $$ = analyze_table_node($3);
    }
    ;
 
@@ -671,7 +683,7 @@ bool output_prompt;
 //
 // Desc: Parse redbase commands
 //
-void RBparse(PF_Manager &pfm, SM_Manager &smm, QL_Manager &qlm)
+void RBparse(PF_Manager &pfm, SM_Manager &smm, QL_Manager &qlm, SS_Manager &ssm)
 {
    RC rc;
 
@@ -679,6 +691,7 @@ void RBparse(PF_Manager &pfm, SM_Manager &smm, QL_Manager &qlm)
    pPfm  = &pfm;
    pSmm  = &smm;
    pQlm  = &qlm;
+   pSsm  = &ssm;
    bExit = 0;
    bQueryPlans = 0;
 
