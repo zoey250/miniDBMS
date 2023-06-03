@@ -23,66 +23,62 @@ static RC insert_or_update(DataAttrInfo &attrInfo, vector<vector<int>> buckets);
 int main()
 {
     string databasename;
-//    RM_FileHandle relcat, attrcat;
+
+    cout << "input database: ";
+    cin >> databasename;
+    cout << endl;
+
+    const char *current_db = databasename.c_str();
+
+    int ret = smm.OpenDb(current_db);
+    if (ret == SM_CHDIR_FAILED)
+    {
+        fprintf(stderr, "database %s does not exist.\n", current_db);
+        return 0;
+    }
+
+    RM_FileScan scan;
+    TRY(scan.OpenScan(smm.getRelcat(), STRING, MAXNAME + 1,
+                      offsetof(RelCatEntry, relName),
+                      EQ_OP, (void *) REL_STATISTICS));
+
+    RM_Record   rec;
+    ret = scan.GetNextRec(rec);
+    scan.CloseScan();
+
+    if (ret == RM_EOF)
+    {
+        create_rel_statistics();
+    }
+
     while (true)
     {
-        cout << "input database: ";
-        cin >> databasename;
+        string  relname;
+        cout << "input analyze relname: ";
+        cin >> relname;
         cout << endl;
 
-        const char *current_db = databasename.c_str();
-
-        int ret = smm.OpenDb(current_db);
-        if (ret == SM_CHDIR_FAILED)
+        if (relname == "exit")
         {
-            fprintf(stderr, "database %s does not exist.\n", current_db);
             break;
         }
 
-        RM_FileScan scan;
-        TRY(scan.OpenScan(smm.getRelcat(), STRING, MAXNAME + 1,
-                          offsetof(RelCatEntry, relName),
-                          EQ_OP, (void *) REL_STATISTICS));
+        const char *current_rel = relname.c_str();
 
-        RM_Record   rec;
+        TRY(scan.OpenScan(smm.getRelcat(), STRING, MAXNAME + 1,
+                            offsetof(RelCatEntry, relName),
+                            EQ_OP, (void *) current_rel));
+
         ret = scan.GetNextRec(rec);
         scan.CloseScan();
-
         if (ret == RM_EOF)
         {
-            create_rel_statistics();
+            fprintf(stderr, "relname %s does not exist.\n", current_rel);
+            continue;
         }
 
-        while (true)
-        {
-            string  relname;
-            cout << "input analyze relname: ";
-            cin >> relname;
-            cout << endl;
+        sample(current_rel);
 
-            if (relname == "exit")
-            {
-                break;
-            }
-
-            const char *current_rel = relname.c_str();
-
-            TRY(scan.OpenScan(smm.getRelcat(), STRING, MAXNAME + 1,
-                                offsetof(RelCatEntry, relName),
-                                EQ_OP, (void *) current_rel));
-
-            ret = scan.GetNextRec(rec);
-            scan.CloseScan();
-            if (ret == RM_EOF)
-            {
-                fprintf(stderr, "relname %s does not exist.\n", current_rel);
-                continue;
-            }
-
-            sample(current_rel);
-
-        }
-        break;
     }
     smm.CloseDb();
 }

@@ -6,6 +6,7 @@
 #define MICRODBMS_STATISTICS_H
 
 #include "sm.h"
+#include "ql_internal.h"
 
 static char *REL_STATISTICS = "relstatistics";
 static char *REL_NAME = "relname";
@@ -29,7 +30,11 @@ private:
 
     void create_rel_statistics();
     RC sample(const char *relname);
-    RC insert_or_update(DataAttrInfo &attrInfo, std::vector<std::vector<int>> buckets);
+    RC insert_or_update(DataAttrInfo &attrInfo, std::vector<std::vector<int>> &buckets);
+    static void build_values(DataAttrInfo &attrInfo, std::vector<std::vector<int>> &buckets, Value *values);
+    static RC reservoir_sampling(const char *relname,int reservoir_size, char **reservoir, int tuple_length);
+    RC executor_sample(int attrCount, AttrList attrInfo, int reservoir_size, char **reservoir);
+    RC check_rel(const char *name);
 };
 
 #endif //MICRODBMS_STATISTICS_H
