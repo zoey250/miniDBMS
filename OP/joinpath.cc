@@ -3,9 +3,7 @@
 //
 
 #include "cost.h"
-
-static inline bool is_leaf(Path *path);
-static inline bool is_join(Path *path);
+#include "joinpath.h"
 
 NestPath *
 create_nestloop_path(Path *outer_path, Path *inner_path)
@@ -53,7 +51,7 @@ create_nestloop_path(Path *outer_path, Path *inner_path)
     return pathnode;
 }
 
-static inline bool
+inline bool
 is_leaf(Path *path)
 {
     if (path->pathtype == T_SeqScan ||
@@ -64,7 +62,7 @@ is_leaf(Path *path)
     return false;
 }
 
-static inline bool
+inline bool
 is_join(Path *path)
 {
     if (IsA(path, NestPath))

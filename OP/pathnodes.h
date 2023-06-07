@@ -108,6 +108,7 @@ struct IndexOptInfo
 
     List       *indrestrictinfo;
     std::vector<QL_Condition> conditions;
+    std::vector<QL_Condition> complexconditions;
 
     bool        unique;
     bool        flag = false;

@@ -12,6 +12,7 @@
 #include "../OP/paths.h"
 #include "string.h"
 #include "../OP/joinpath.h"
+#include "../OP/op_dynamic.h"
 
 static void clean(PlannerInfo *root);
 static QL_Iterator *BuildIterator(Path *path);
@@ -317,17 +318,9 @@ RC QL_Manager::Select(int nSelAttrs, const RelAttr *selAttrs,
                                           attrInfo);
     cost_estimate(root);
 
-    /*
-    Path   *best_path = root->simple_rel_array[0]->cheapest_total_path;
+    Path *rootPath = doDynamic(root);
+    QL_Iterator    *iter = BuildIterator(rootPath);
 
-    QL_Iterator    *iter = BuildIterator(best_path);
-     */
-
-    NestPath       *npath = create_nestloop_path(root->simple_rel_array[0]->cheapest_total_path,
-                                                 root->simple_rel_array[1]->cheapest_total_path);
-    QL_Iterator    *iter = BuildIterator((Path *) npath);
-
-//    QL_Iterator    *final_iter = new QL_ProjectionIterator(iter, finalProjections, finalProjections);
     QL_Iterator    *final = new QL_ProjectionIterator(iter, finalProjections, finalProjections);
 
     /*
@@ -1112,17 +1105,35 @@ BuildIterator(Path *path)
     if (path->pathtype == T_IndexScan)
     {
         IndexPath  *iPath = (IndexPath *) path;
-        return new QL_IndexSearchIterator(iPath->indexinfo->conditions[0]);
+        RelOptInfo     *parent = path->parent;
+        QL_Iterator    *idx_iter = new QL_IndexSearchIterator(iPath->indexinfo->conditions[0]);
+        AttrList        proj;
+        if (parent->reltarget.empty())
+        {
+            proj = parent->attrinfo;
+        }
+        else
+        {
+            proj = parent->reltarget;
+        }
+        return new QL_ProjectionIterator(idx_iter, proj, proj);
     }
     if (path->pathtype == T_NestLoop)
     {
         NestPath       *nPath = (NestPath *) path;
         Path           *innerJoinPath = nPath->jpath.innerjoinpath;
         Path           *outerJoinPath = nPath->jpath.outerjoinpath;
-        QL_Iterator    *iter1 = BuildIterator(innerJoinPath);
-        QL_Iterator    *iter2 = BuildIterator(outerJoinPath);
-        return new QL_NestedLoopJoinIterator(iter1, innerJoinPath->parent->attrinfo,
-                                             iter2, outerJoinPath->parent->attrinfo);
+        QL_Iterator    *inner_iter = BuildIterator(innerJoinPath);
+        QL_Iterator    *outer_iter = BuildIterator(outerJoinPath);
+
+        if (innerJoinPath->pathtype == T_IndexScan)
+        {
+            return new QL_IndexedJoinIterator(outer_iter, outerJoinPath->parent->attrinfo,
+                                              (QL_IndexSearchIterator *) inner_iter, 0, // TODO set offset.
+                                              inner_iter,innerJoinPath->parent->attrinfo);
+        }
+        return new QL_NestedLoopJoinIterator(outer_iter, outerJoinPath->parent->attrinfo,
+                                             inner_iter, innerJoinPath->parent->attrinfo);
     }
     return NULL;
 }

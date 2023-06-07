@@ -36,6 +36,8 @@ Path* doDynamic(PlannerInfo* root){
             unsigned char left_key = it->first;
             Path* left_value = it->second;
             printf("%d\n",left_key);
+
+            int j = 0;
             for (auto it_o = bestJoin[0].begin(); it_o != bestJoin[0].end(); ++it_o) {
                 unsigned char right_key = it_o->first;
                 Path* right_value = it_o->second;
@@ -52,8 +54,57 @@ Path* doDynamic(PlannerInfo* root){
                         bestJoin[i][left_key|right_key] = (Path*) join_path;
                         bestJoinNest[i][left_key|right_key] = join_path;
                     }
-                    
+
+                    ListCell   *lc;
+                    foreach(lc, root->simple_rel_array[j]->pathlist)
+                    {
+                        Path   *p = (Path *) lfirst(lc);
+                        if (p->pathtype == T_IndexScan)
+                        {
+                            IndexPath  *iPath = (IndexPath *) p;
+                            if (iPath->indexinfo->complexconditions.empty())
+                            {
+                                continue;
+                            }
+
+                            for (int k = 0; k < iPath->indexinfo->complexconditions.size(); ++k)
+                            {
+                                QL_Condition condition = iPath->indexinfo->complexconditions[k];
+                                if (is_leaf(left_value))
+                                {
+                                    for (int l = 0; l < left_value->parent->complexconditions.size(); ++l)
+                                    {
+                                        if (condition == left_value->parent->complexconditions[l])
+                                        {
+                                            NestPath *index_join_path = create_nestloop_path(left_value, p);
+                                            if (((Path *) index_join_path)->total_cost < bestJoin[i][left_key | right_key]->total_cost)
+                                            {
+                                                bestJoin[i][left_key | right_key] = (Path *) index_join_path;
+                                            }
+                                        }
+                                    }
+                                }
+                                if (is_join(left_value))
+                                {
+                                    NestPath   *nPath = (NestPath *) left_value;
+                                    for (int l = 0; l < nPath->jpath.outercomplexconditions.size(); ++l)
+                                    {
+                                        if (condition == nPath->jpath.outercomplexconditions[l])
+                                        {
+                                            NestPath *index_join_path = create_nestloop_path(left_value, p);
+                                            if (((Path *) index_join_path)->total_cost < bestJoin[i][left_key | right_key]->total_cost)
+                                            {
+                                                bestJoin[i][left_key | right_key] = (Path *) index_join_path;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
+
+                j++;
             }
         }
         // 输出到控制台

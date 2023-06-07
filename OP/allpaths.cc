@@ -13,7 +13,8 @@ static void set_rel_pathlist(PlannerInfo *root, RelOptInfo *rel);
 static void set_plain_rel_pathlist(PlannerInfo *root, RelOptInfo *rel);
 static List* init_index_list(RelOptInfo *rel,
                              std::vector<std::pair<IX_IndexHandle, IndexOptInfo>> indexVector,
-                             std::vector<QL_Condition> simpleConditions);
+                             std::vector<QL_Condition> simpleConditions,
+                             std::vector<QL_Condition> complexConditions);
 static void set_base_rel_sizes(PlannerInfo *root);
 static void set_base_rel_pathlists(PlannerInfo *root);
 
@@ -63,7 +64,8 @@ init_planner_info(AttrList finalProjections,
 
         rel->indexlist = init_index_list(rel,
                                          indexVector[i],
-                                         simpleConditions[i]);
+                                         simpleConditions[i],
+                                         rel->complexconditions);
         rel->conditions = simpleConditions[i];
         rel->reltarget = simpleProjections[i];
 
@@ -128,7 +130,8 @@ set_plain_rel_pathlist(PlannerInfo *root, RelOptInfo *rel)
 static List*
 init_index_list(RelOptInfo *rel,
                 std::vector<std::pair<IX_IndexHandle, IndexOptInfo>> indexVector,
-                std::vector<QL_Condition> simpleConditions)
+                std::vector<QL_Condition> simpleConditions,
+                std::vector<QL_Condition> complexConditions)
 {
     List   *list = NIL;
     for (int i = 0; i < indexVector.size(); ++i)
@@ -145,6 +148,17 @@ init_index_list(RelOptInfo *rel,
                 {
                     indexInfo->conditions.push_back(simpleConditions[j]);
                 }
+            }
+        }
+
+        for (int j = 0; j < complexConditions.size(); ++j)
+        {
+            if ((strcmp(oldInfo.attrName, complexConditions[j].lhsAttr.attrName) == 0 &&
+                 strcmp(oldInfo.relName, complexConditions[j].lhsAttr.relName) == 0) ||
+                (strcmp(oldInfo.attrName, complexConditions[j].rhsAttr.attrName) == 0 &&
+                 strcmp(oldInfo.relName, complexConditions[j].rhsAttr.relName) == 0))
+            {
+                indexInfo->complexconditions.push_back(complexConditions[j]);
             }
         }
 

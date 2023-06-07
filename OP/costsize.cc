@@ -204,6 +204,10 @@ cost_nestloop(NestPath *path)
     Cardinality inner_path_rows = inner_path->rows;
     Cardinality ntuples;
     Cardinality nrows;
+    if (outer_path_rows == 1)
+    {
+        outer_path_rows = outer_path->parent->tuples;
+    }
 
     if (outer_path_rows <= 0)
     {
