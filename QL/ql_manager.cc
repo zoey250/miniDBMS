@@ -11,8 +11,10 @@
 #include "ql_disjoint.h"
 #include "../OP/paths.h"
 #include "string.h"
+#include "../OP/joinpath.h"
 
 static void clean(PlannerInfo *root);
+static QL_Iterator *BuildIterator(Path *path);
 
 /**
  * 构造函数
@@ -311,9 +313,24 @@ RC QL_Manager::Select(int nSelAttrs, const RelAttr *selAttrs,
                                           relEntries,
                                           indexVector,
                                           simpleConditions,
-                                          complexConditions);
+                                          complexConditions,
+                                          attrInfo);
     cost_estimate(root);
 
+    /*
+    Path   *best_path = root->simple_rel_array[0]->cheapest_total_path;
+
+    QL_Iterator    *iter = BuildIterator(best_path);
+     */
+
+    NestPath       *npath = create_nestloop_path(root->simple_rel_array[0]->cheapest_total_path,
+                                                 root->simple_rel_array[1]->cheapest_total_path);
+    QL_Iterator    *iter = BuildIterator((Path *) npath);
+
+//    QL_Iterator    *final_iter = new QL_ProjectionIterator(iter, finalProjections, finalProjections);
+    QL_Iterator    *final = new QL_ProjectionIterator(iter, finalProjections, finalProjections);
+
+    /*
     // helper functions
     std::vector<bool> filtered((unsigned long)nRelations);
     std::vector<QL_Iterator *> iterators((unsigned long)nRelations);
@@ -492,6 +509,7 @@ RC QL_Manager::Select(int nSelAttrs, const RelAttr *selAttrs,
         AttrList projectFrom = findCorrespondingAttrs(finalNum, finalProjections);
         queryPlans.push_back(final = new QL_ProjectionIterator(final, projectFrom, finalProjections));
     }
+     */
 
     if (bQueryPlans) {
         final->Print();
@@ -1069,4 +1087,42 @@ clean(PlannerInfo *root)
     free(root->simple_rel_array);
     root->simple_rel_array = NULL;
     delete root;
+}
+
+static QL_Iterator *
+BuildIterator(Path *path)
+{
+    if (path->pathtype == T_SeqScan)
+    {
+        RelOptInfo     *parent = path->parent;
+        QL_Iterator    *seq_iter = new QL_FileScanIterator(parent->name);
+        QL_Iterator    *select_iter = new QL_SelectionIterator(seq_iter, parent->conditions);
+        AttrList        proj;
+        if (parent->reltarget.empty())
+        {
+            proj = parent->attrinfo;
+        }
+        else
+        {
+            proj = parent->reltarget;
+        }
+        QL_Iterator    *proj_iter = new QL_ProjectionIterator(select_iter, proj, proj); // 可能有问题
+        return proj_iter;
+    }
+    if (path->pathtype == T_IndexScan)
+    {
+        IndexPath  *iPath = (IndexPath *) path;
+        return new QL_IndexSearchIterator(iPath->indexinfo->conditions[0]);
+    }
+    if (path->pathtype == T_NestLoop)
+    {
+        NestPath       *nPath = (NestPath *) path;
+        Path           *innerJoinPath = nPath->jpath.innerjoinpath;
+        Path           *outerJoinPath = nPath->jpath.outerjoinpath;
+        QL_Iterator    *iter1 = BuildIterator(innerJoinPath);
+        QL_Iterator    *iter2 = BuildIterator(outerJoinPath);
+        return new QL_NestedLoopJoinIterator(iter1, innerJoinPath->parent->attrinfo,
+                                             iter2, outerJoinPath->parent->attrinfo);
+    }
+    return NULL;
 }

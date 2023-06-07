@@ -19,7 +19,8 @@ extern PlannerInfo *init_planner_info(AttrList finalProjections,
                                       std::vector<RelCatEntry> relEntries,
                                       std::vector<std::vector<std::pair<IX_IndexHandle, IndexOptInfo>>> indexVector,
                                       std::vector<std::vector<QL_Condition>> simpleConditions,
-                                      std::vector<QL_Condition> complexConditions);
+                                      std::vector<QL_Condition> complexConditions,
+                                      std::vector<AttrList> attrInfo);
 
 extern void cost_estimate(PlannerInfo *root);
 

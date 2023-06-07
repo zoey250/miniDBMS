@@ -25,7 +25,8 @@ init_planner_info(AttrList finalProjections,
                   std::vector<RelCatEntry> relEntries,
                   std::vector<std::vector<std::pair<IX_IndexHandle, IndexOptInfo>>> indexVector,
                   std::vector<std::vector<QL_Condition>> simpleConditions,
-                  std::vector<QL_Condition> complexConditions)
+                  std::vector<QL_Condition> complexConditions,
+                  std::vector<AttrList> attrInfo)
 {
     PlannerInfo    *root = new PlannerInfo();
     root->type = T_PlannerInfo;
@@ -67,6 +68,7 @@ init_planner_info(AttrList finalProjections,
         rel->reltarget = simpleProjections[i];
 
         rel->pathlist = NULL;
+        rel->attrinfo = attrInfo[i];
         root->simple_rel_array[i] = rel;
     }
     root->finalProjections = finalProjections;

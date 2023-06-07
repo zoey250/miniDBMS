@@ -57,6 +57,7 @@ typedef struct RelOptInfo
     // __output__
     Cardinality     rows;
     List           *pathlist;
+    AttrList        attrinfo;
 
     struct Path    *cheapest_startup_path;
     struct Path    *cheapest_total_path;
