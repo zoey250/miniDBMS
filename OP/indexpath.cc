@@ -203,18 +203,28 @@ build_index_paths(PlannerInfo *root,
                   IndexOptInfo *index)
 {
     List       *result = NIL;
-    IndexPath  *ipath;
     double      loop_count;
 
-    if (index->conditions.empty())
+    if (index->conditions.empty() && index->complexconditions.empty())
     {
         return NIL;
     }
 
     loop_count = get_loop_count();
 
-    ipath = create_index_path(root, index, loop_count);
-    result = lappend(result, ipath);
+    if (!index->conditions.empty())
+    {
+        IndexPath  *ipath;
+        ipath = create_index_path(root, index, loop_count);
+        result = lappend(result, ipath);
+    }
+
+    for (int i = 0; i < index->complexconditions.size(); ++i)
+    {
+        IndexPath  *complex_path = create_complex_index_path(root, index, loop_count, index->complexconditions[i]);
+        complex_path->complex_condition_idx = i;
+        result = lappend(result, complex_path);
+    }
 
     return result;
 }

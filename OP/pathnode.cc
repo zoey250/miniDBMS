@@ -35,6 +35,15 @@ set_cheapest(RelOptInfo *parent_rel)
         Path   *path = (Path *) lfirst(p);
         int     cmp;
 
+        if (path->pathtype == T_IndexScan)
+        {
+            IndexPath  *iPath = (IndexPath *) path;
+            if (iPath->complex_condition_idx != -1)
+            {
+                continue;
+            }
+        }
+
         if (cheapest_total_path == NULL)
         {
             cheapest_startup_path = cheapest_total_path = path;
@@ -231,6 +240,24 @@ create_index_path(PlannerInfo *root, IndexOptInfo *index,
     pathnode->indexinfo = index;
 
     cost_index(pathnode, root, loop_count);
+
+    return pathnode;
+}
+
+IndexPath *
+create_complex_index_path(PlannerInfo *root, IndexOptInfo *index,
+                          double loop_count, QL_Condition condition)
+{
+    IndexPath *pathnode = makeNode(IndexPath);
+    RelOptInfo *rel = index->rel;
+
+    pathnode->path.pathtype = T_IndexScan;
+    pathnode->path.parent = rel;
+    pathnode->path.pathtarget = rel->reltarget;
+
+    pathnode->indexinfo = index;
+
+    cost_complex_index(pathnode, root, loop_count, condition);
 
     return pathnode;
 }

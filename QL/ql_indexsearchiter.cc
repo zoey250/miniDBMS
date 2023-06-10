@@ -31,3 +31,9 @@ void QL_IndexSearchIterator::Print(std::string prefix) {
     std::cout << id << ": ";
     std::cout << "SEARCH" << " " << condition << std::endl;
 }
+
+QL_Condition
+QL_IndexSearchIterator::getCondition()
+{
+    return condition;
+}

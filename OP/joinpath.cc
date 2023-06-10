@@ -14,6 +14,15 @@ create_nestloop_path(Path *outer_path, Path *inner_path)
     pathnode->jpath.outerjoinpath = outer_path;
     pathnode->jpath.innerjoinpath = inner_path;
 
+    pathnode->jpath.path.parent = new RelOptInfo;
+
+    pathnode->jpath.path.parent->attrinfo.insert(pathnode->jpath.path.parent->attrinfo.end(),
+                                                 outer_path->parent->attrinfo.begin(),
+                                                 outer_path->parent->attrinfo.end());
+    pathnode->jpath.path.parent->attrinfo.insert(pathnode->jpath.path.parent->attrinfo.end(),
+                                                 inner_path->parent->attrinfo.begin(),
+                                                 inner_path->parent->attrinfo.end());
+
     if (is_leaf(outer_path))
     {
         for (int i = 0; i < outer_path->parent->complexconditions.size(); ++i)

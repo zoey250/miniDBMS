@@ -14,5 +14,9 @@ extern void btcostestimate(struct PlannerInfo *root,
                            Cost *indexTotalCost,
                            Selectivity *indexSelectivity,
                            double *indexPages);
+extern void complex_btcostestimate(struct PlannerInfo *root, struct IndexPath *path,
+                           double loop_count, Cost *indexStartupCost,
+                           Cost *indexTotalCost, Selectivity *indexSelectivity,
+                           double *indexPages, QL_Condition condition);
 
 #endif //MICRODBMS_INDEX_SELFUNCS_H

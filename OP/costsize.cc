@@ -250,6 +250,94 @@ cost_nestloop(NestPath *path)
     path->jpath.path.rows = nrows;
 }
 
+void
+cost_complex_index(IndexPath *path, PlannerInfo *root, double loop_count, QL_Condition condition)
+{
+    IndexOptInfo   *index = path->indexinfo;
+    RelOptInfo     *baserel = index->rel;
+    Cost            startup_cost = 0;
+    Cost            run_cost = 0;
+    Cost            cpu_run_cost = 0;
+
+    Cost            indexStartupCost;
+    Cost            indexTotalCost;
+    Selectivity     indexSelectivity;
+
+    double          spc_seq_page_cost;
+    double          spc_random_page_cost;
+
+    Cost            min_IO_cost;
+    Cost            max_IO_cost;
+
+    QualCost        qpqual_cost;
+    Cost            cpu_per_tuple;
+
+    double          tuples_fetched;
+    double          pages_fetched;
+
+    double          rand_heap_pages;
+    double          index_pages;
+
+    path->path.rows = baserel->rows;
+
+    complex_btcostestimate(root, path, loop_count, &indexStartupCost,
+                   &indexTotalCost, &indexSelectivity,
+                   &index_pages, condition);
+
+    path->indextotalcost = indexTotalCost;
+    path->indexselectivity = indexSelectivity;
+
+    startup_cost += indexStartupCost;
+    run_cost += indexTotalCost - indexStartupCost;
+
+    tuples_fetched = clamp_row_est(indexSelectivity * baserel->tuples);
+
+    get_page_costs(&spc_random_page_cost, &spc_seq_page_cost);
+
+    if (loop_count > 1)
+    {
+        pages_fetched = index_pages_fetched(path, baserel->pages, (double) index->pages);
+        rand_heap_pages = pages_fetched;
+
+        max_IO_cost = (pages_fetched * spc_random_page_cost) / loop_count;
+
+        pages_fetched = ceil(indexSelectivity * (double) baserel->pages);
+        pages_fetched = index_pages_fetched(path, baserel->pages, (double) index->pages);
+        min_IO_cost = (pages_fetched * spc_random_page_cost) / loop_count;
+    }
+    else
+    {
+        pages_fetched = index_pages_fetched(path, baserel->pages, (double) index->pages);
+
+        rand_heap_pages = pages_fetched;
+        max_IO_cost = pages_fetched * spc_random_page_cost;
+        pages_fetched = ceil(indexSelectivity * (double) baserel->pages);
+        if (pages_fetched > 0)
+        {
+            min_IO_cost = spc_random_page_cost;
+            if (pages_fetched > 1)
+            {
+                min_IO_cost += (pages_fetched - 1) * spc_seq_page_cost;
+            }
+        }
+        else
+        {
+            min_IO_cost = 0;
+        }
+    }
+
+    run_cost += max_IO_cost;
+
+    startup_cost += qpqual_cost.startup;
+    cpu_per_tuple = cpu_tuple_cost + qpqual_cost.per_tuple;
+    cpu_run_cost += cpu_per_tuple * tuples_fetched;
+
+    run_cost += cpu_run_cost;
+
+    path->path.startup_cost = startup_cost;
+    path->path.total_cost = startup_cost + run_cost;
+}
+
 static void
 cost_rescan(Path *path, Cost *rescan_startup_cost, Cost *rescan_total_cost)
 {

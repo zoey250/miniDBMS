@@ -79,6 +79,7 @@ public:
     RC GetNextRec(RM_Record &rec) override;
     RC Reset() override;
     void Print(std::string prefix = "") override;
+    QL_Iterator *getInputIter();
 };
 
 class QL_IndexSearchIterator : public QL_Iterator {
@@ -93,6 +94,7 @@ public:
     RC GetNextRec(RM_Record &rec) override;
     RC Reset() override;
     void Print(std::string prefix = "") override;
+    QL_Condition getCondition();
 };
 
 class QL_NestedLoopJoinIterator : public QL_Iterator {

@@ -142,6 +142,8 @@ typedef struct IndexPath
     IndexOptInfo   *indexinfo;
     Cost        indextotalcost;
     Selectivity indexselectivity;
+    int         simple_condition_idx;
+    int         complex_condition_idx = -1;
 } IndexPath;
 
 typedef struct JoinPath
@@ -172,5 +174,7 @@ extern void create_index_paths(PlannerInfo *root, RelOptInfo *rel);
 extern int compare_path_costs(Path *path1, Path *path2, CostSelect criterion);
 extern IndexPath *create_index_path(PlannerInfo *root, IndexOptInfo *index,
                                     double loop_count);
+extern IndexPath *create_complex_index_path(PlannerInfo *root, IndexOptInfo *index,
+                                            double loop_count, QL_Condition condition);
 
 #endif //MICRODBMS_PATHNODES_H

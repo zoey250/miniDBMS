@@ -23,5 +23,6 @@ extern void cost_index(IndexPath *path, PlannerInfo *root,
 extern void get_page_costs(double *spc_random_page_cost,
                            double *spc_seq_page_cost);
 extern void cost_nestloop(NestPath *path);
+extern void cost_complex_index(IndexPath *path, PlannerInfo *root, double loop_count, QL_Condition condition);
 
 #endif //MICRODBMS_COST_H

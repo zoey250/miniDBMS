@@ -54,3 +54,9 @@ void QL_ProjectionIterator::Print(std::string prefix) {
     editPrefix(prefix);
     inputIter->Print(prefix + "└──");
 }
+
+QL_Iterator *
+QL_ProjectionIterator::getInputIter()
+{
+    return inputIter;
+}

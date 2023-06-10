@@ -172,6 +172,65 @@ get_quals_from_indexclauses(List *indexclauses)
     return result;
 }
 
+void
+complex_btcostestimate(struct PlannerInfo *root, struct IndexPath *path,
+               double loop_count, Cost *indexStartupCost,
+               Cost *indexTotalCost, Selectivity *indexSelectivity,
+               double *indexPages, QL_Condition condition)
+{
+    IndexOptInfo   *index = path->indexinfo;
+    GenericCosts    costs = {0};
+    Oid             relid;
+    AttrNumber      colnum;
+    double          numIndexTuples;
+    Cost            desccentCost;
+    bool            eqQualHere;
+
+    int             op_strategy;
+
+    op_strategy = get_op_strategy(condition.op);
+    if (op_strategy == BTEqualStrategyNumber)
+    {
+        eqQualHere = true;
+    }
+
+    if (index->unique && eqQualHere)
+    {
+        index->flag = true;
+        numIndexTuples = 1.0;
+        costs.indexSelectivity = 1.0 / path->indexinfo->tuples;
+    }
+    else
+    {
+        Selectivity btreeSelectivity = 1.0;
+
+        std::vector<QL_Condition> conditions;
+        conditions.push_back(condition);
+        btreeSelectivity = calSingleRelSelectivity(conditions);
+
+        numIndexTuples = btreeSelectivity * index->rel->tuples;
+    }
+    costs.numIndexTuples = numIndexTuples;
+
+    genericcostestimate(root, path, loop_count, &costs);
+
+    if (index->tuples > 1)
+    {
+        desccentCost = ceil(log(index->tuples) / log(2.0)) * cpu_operator_cost;
+        costs.indexStartupCost += desccentCost;
+        costs.indexTotalCost += desccentCost;
+    }
+    desccentCost = (index->tree_height + 1) * 50.0 * cpu_operator_cost;
+    costs.indexStartupCost += desccentCost;
+    costs.indexTotalCost += desccentCost;
+    path->path.rows = numIndexTuples;
+
+    *indexStartupCost = costs.indexStartupCost;
+    *indexTotalCost = costs.indexTotalCost;
+    *indexSelectivity = costs.indexSelectivity;
+    *indexPages = costs.numIndexPages;
+}
+
 static int
 get_op_strategy(CompOp opno)
 {

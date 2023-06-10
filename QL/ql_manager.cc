@@ -13,6 +13,7 @@
 #include "string.h"
 #include "../OP/joinpath.h"
 #include "../OP/op_dynamic.h"
+#include "../OP/restrictinfo.h"
 
 static void clean(PlannerInfo *root);
 static QL_Iterator *BuildIterator(Path *path);
@@ -1106,7 +1107,25 @@ BuildIterator(Path *path)
     {
         IndexPath  *iPath = (IndexPath *) path;
         RelOptInfo     *parent = path->parent;
-        QL_Iterator    *idx_iter = new QL_IndexSearchIterator(iPath->indexinfo->conditions[0]);
+        QL_Iterator    *idx_iter;
+        if (iPath->complex_condition_idx == -1)
+        {
+            idx_iter = new QL_IndexSearchIterator(iPath->indexinfo->conditions[0]);
+        }
+        else
+        {
+            QL_Condition complex_condition = iPath->indexinfo->complexconditions[iPath->complex_condition_idx];
+            QL_Condition condition = complex_condition;
+            if (complex_condition.lhsAttr.indexNo < 0)
+            {
+                condition.lhsAttr = complex_condition.rhsAttr;
+                condition.rhsAttr = complex_condition.lhsAttr;
+                condition.bRhsIsAttr = complex_condition.bRhsIsAttr;
+                condition.rhsValue = complex_condition.rhsValue;
+                condition.op = get_commutator(complex_condition.op);
+            }
+            idx_iter = new QL_IndexSearchIterator(condition);
+        }
         AttrList        proj;
         if (parent->reltarget.empty())
         {
@@ -1128,8 +1147,9 @@ BuildIterator(Path *path)
 
         if (innerJoinPath->pathtype == T_IndexScan)
         {
+            QL_IndexSearchIterator *indexIter = (QL_IndexSearchIterator *)((QL_ProjectionIterator *)inner_iter)->getInputIter();
             return new QL_IndexedJoinIterator(outer_iter, outerJoinPath->parent->attrinfo,
-                                              (QL_IndexSearchIterator *) inner_iter, 0, // TODO set offset.
+                                              indexIter, indexIter->getCondition().rhsAttr.offset,
                                               inner_iter,innerJoinPath->parent->attrinfo);
         }
         return new QL_NestedLoopJoinIterator(outer_iter, outerJoinPath->parent->attrinfo,
