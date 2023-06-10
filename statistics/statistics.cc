@@ -3,6 +3,8 @@
 #include "ql_internal.h"
 #include "ql_iterator.h"
 #include <algorithm>
+#include <fcntl.h>
+#include <unistd.h>
 
 using namespace std;
 
@@ -26,6 +28,8 @@ SS_Manager::AnalyzeTable(const char *name)
     sample(name);
     return 0;
 }
+
+static unsigned int get_rand();
 
 void
 SS_Manager::create_rel_statistics()
@@ -219,7 +223,7 @@ SS_Manager::reservoir_sampling(const char *relname, int reservoir_size, char **r
         }
         else
         {
-            int d = rand() % (idx + 1);
+            int d = get_rand() % (idx + 1);
 
             if (d < reservoir_size)
             {
@@ -282,6 +286,7 @@ SS_Manager::executor_sample(int attrCount, AttrList attrInfo, int reservoir_size
                     if (values[j] == values[j - 1])
                     {
                         buckets[bucket_id].push_back(values[j]);
+                        num++;
                     }
                     else
                     {
@@ -327,4 +332,20 @@ SS_Manager::check_rel(const char *name)
     }
     scan.CloseScan();
     return 0;
+}
+
+static unsigned int
+get_rand()
+{
+    int     randomData = open("/dev/random", O_RDONLY);
+    unsigned int myRandomNumber = 0;
+    size_t  randomDataLen = 0;
+
+    while (randomDataLen < sizeof myRandomNumber) {
+        ssize_t result = read(randomData, &myRandomNumber, sizeof myRandomNumber - randomDataLen);
+        randomDataLen += result;
+    }
+
+    close(randomData);
+    return myRandomNumber;
 }
