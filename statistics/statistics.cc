@@ -20,12 +20,58 @@ SS_Manager::SS_Manager(QL_Manager &qlm, SM_Manager &smm, IX_Manager &ixm, RM_Man
 
 SS_Manager::~SS_Manager() = default;
 
+//zy
+std::vector<StatisticsData> statisticsData = std::vector<StatisticsData>();
+// zy, 将统计信息加载到内存的函数
+RC SS_Manager::load_statistics_into_memory() {
+    static bool isInitialized = false;
+
+    // 清空内存中数据
+    statisticsData.clear();
+
+    // 读取统计信息表中的数据
+    QL_Iterator *iter = new QL_FileScanIterator(REL_STATISTICS);
+    RM_Record rec;
+
+    int statisticsAttrCount;
+    AttrList statisticsAttrList;
+
+    TRY(pSmm->GetDataAttrInfo(REL_STATISTICS, statisticsAttrCount, statisticsAttrList, true));
+
+    // 逐条获取统计信息记录
+    while (iter->GetNextRec(rec) != RM_EOF) {
+        char *data;
+        TRY(rec.GetData(data));
+
+        // 解析统计信息记录的各个字段
+        std::string relName(reinterpret_cast<char *>(data));
+        std::string attrName(reinterpret_cast<char *>(data  + statisticsAttrList[1].offset));
+        int bucketNum = *reinterpret_cast<int *>(data + statisticsAttrList[2].offset);
+        std::string value(reinterpret_cast<char *>(data + statisticsAttrList[3].offset));
+
+        // 创建 StatisticsData 结构并添加到 statisticsData 向量中
+        StatisticsData statsData;
+        statsData.relName = relName;
+        statsData.attrName = attrName;
+        statsData.bucketNum = bucketNum;
+        statsData.value = value;
+        statisticsData.push_back(statsData);
+    }
+
+    printf("analyze ok");
+
+    return 0;
+
+}
+
 RC
 SS_Manager::AnalyzeTable(const char *name)
 {
     check_rel(name);
 
     sample(name);
+
+    load_statistics_into_memory();
     return 0;
 }
 

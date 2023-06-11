@@ -8,11 +8,22 @@
 #include "sm.h"
 #include "ql_internal.h"
 
+// zy, 加载到内存时使用
+struct StatisticsData {
+    std::string relName;
+    std::string attrName;
+    int bucketNum;
+    std::string value;
+};
+
 static char *REL_STATISTICS = "relstatistics";
 static char *REL_NAME = "relname";
 static char *ATTR_NAME = "attrname";
 static char *BUCKET_NUM = "bucketnum";
 static char *VALUE = "value";
+
+// zy
+extern std::vector<StatisticsData> statisticsData;
 
 class SS_Manager
 {
@@ -20,8 +31,10 @@ public:
     SS_Manager(QL_Manager &qlm, SM_Manager &smm, IX_Manager &ixm, RM_Manager &rmm);
     ~SS_Manager();
 
-    RC AnalyzeTable(const char *relName);
+    // zy 加载统计信息到内存的函数
+    RC load_statistics_into_memory();
 
+    RC AnalyzeTable(const char *relName);
 private:
     QL_Manager *pQlm;
     SM_Manager *pSmm;   // SM_Manager对象
