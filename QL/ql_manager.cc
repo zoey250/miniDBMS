@@ -1152,8 +1152,65 @@ BuildIterator(Path *path)
                                               indexIter, indexIter->getCondition().rhsAttr.offset,
                                               inner_iter,innerJoinPath->parent->attrinfo);
         }
-        return new QL_NestedLoopJoinIterator(outer_iter, outerJoinPath->parent->attrinfo,
-                                             inner_iter, innerJoinPath->parent->attrinfo);
+        if (outerJoinPath->pathtype == T_NestLoop)
+        {
+            NestPath *nIter = (NestPath *) outerJoinPath;
+
+            std::vector<QL_Condition> conditions;
+            for (int i = 0; i < innerJoinPath->parent->complexconditions.size(); ++i)
+            {
+                for (int j = 0; j < nIter->jpath.outercomplexconditions.size(); ++j)
+                {
+                    if  (nIter->jpath.outercomplexconditions[j] == innerJoinPath->parent->complexconditions[i])
+                    {
+                        conditions.push_back(innerJoinPath->parent->complexconditions[i]);
+                    }
+                }
+                for (int j = 0; j < nIter->jpath.innercomplexconditions.size(); ++j)
+                {
+                    if (nIter->jpath.innercomplexconditions[j] == innerJoinPath->parent->complexconditions[i])
+                    {
+                        conditions.push_back(innerJoinPath->parent->complexconditions[i]);
+                    }
+                }
+            }
+            if (conditions.empty())
+            {
+                return new QL_NestedLoopJoinIterator(outer_iter, outerJoinPath->parent->attrinfo,
+                                                     inner_iter, innerJoinPath->parent->attrinfo);
+            }
+            else
+            {
+                QL_NestedLoopJoinIterator *nestLoopIter = new QL_NestedLoopJoinIterator(outer_iter, outerJoinPath->parent->attrinfo,
+                                                                                        inner_iter, innerJoinPath->parent->attrinfo);
+                return new QL_SelectionIterator(nestLoopIter, conditions);
+            }
+        }
+        else
+        {
+            std::vector<QL_Condition> conditions;
+            for (int i = 0; i < innerJoinPath->parent->complexconditions.size(); ++i)
+            {
+                for (int j = 0; j < outerJoinPath->parent->complexconditions.size(); ++j)
+                {
+                    if (innerJoinPath->parent->complexconditions[i] == outerJoinPath->parent->complexconditions[j])
+                    {
+                        conditions.push_back(innerJoinPath->parent->complexconditions[i]);
+                    }
+                }
+            }
+            if (conditions.empty())
+            {
+                return new QL_NestedLoopJoinIterator(outer_iter, outerJoinPath->parent->attrinfo,
+                                                     inner_iter, innerJoinPath->parent->attrinfo);
+            }
+            else
+            {
+                QL_NestedLoopJoinIterator *nestLoopIter = new QL_NestedLoopJoinIterator(outer_iter, outerJoinPath->parent->attrinfo,
+                                                                                        inner_iter, innerJoinPath->parent->attrinfo);
+                return new QL_SelectionIterator(nestLoopIter, conditions);
+            }
+        }
     }
     return NULL;
 }
