@@ -248,7 +248,6 @@ double calSingleRelSelectivity(const std::vector<QL_Condition>& conditions) {
         }
     }
 
-    std::cout << "Selectivity: " << conditionSelectivity << std::endl;
     return conditionSelectivity;
 }
 
