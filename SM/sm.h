@@ -83,6 +83,17 @@ public:
     //更新attrcat中指定关系表指定属性信息
     RC UpdateAttrEntry(const char *relName, const char *attrName, const AttrCatEntry &attrEntry);
     //检索与特定属性关联的数据
+
+    inline RM_FileHandle getRelcat()
+    {
+        return relcat;
+    }
+
+    inline RM_FileHandle getAttrcat()
+    {
+        return attrcat;
+    }
+
 private:
     //检索与关系项关联的数据
     RC GetRelCatEntry(const char *relName, RM_Record &rec);

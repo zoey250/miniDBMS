@@ -10,6 +10,9 @@
 #include <unistd.h>
 #include "sys/stat.h"
 #include <dirent.h>
+#include "../statistics/statistics.h"
+#include "ql_internal.h"
+#include "ql_iterator.h"
 
 //长度
 static const int kCwdLen = 256;

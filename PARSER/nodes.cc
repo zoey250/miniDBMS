@@ -295,3 +295,9 @@ NODE *prepend_list(NODE *l, NODE *list) {
     l->u.LIST.next = list;
     return r;
 }
+
+NODE *analyze_table_node(char *relname) {
+    NODE *n = newnode(N_ANALYZE);
+    n->u.ANALYZE.relname = relname;
+    return n;
+}

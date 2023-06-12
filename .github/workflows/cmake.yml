@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - dev
+      - dev_statistics
   pull_request:
     branches: [ "main" ]
 

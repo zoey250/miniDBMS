@@ -56,6 +56,8 @@ file(GLOB C_SOURCE_FILES
         "OP/*.c"
         "utils/*.h"
         "utils/*.c"
+        "statistics/*.h"
+        "statistics/*.c"
         )
 
 file(GLOB CPP_SOURCE_FILES
@@ -77,6 +79,8 @@ file(GLOB CPP_SOURCE_FILES
         "OP/*.cc"
         "utils/*.h"
         "utils/*.cc"
+        "statistics/*.h"
+        "statistics/*.cc"
         )
 set(SOURCE_FILES
         ${C_SOURCE_FILES}
@@ -85,14 +89,19 @@ set(SOURCE_FILES
         ${FLEX_Lexer_OUTPUTS}
         )
 
+file(GLOB CPP_CONTRIB_FILES
+        "statistics.cpp"
+        )
+
 #add_executable(dbcreate ${SOURCE_FILES} "dbcreate.cpp")
 add_executable(microDBMS ${SOURCE_FILES} "redbase.cpp")
 #add_executable(rm_test ${SOURCE_FILES} "rm_test.cpp")
 #add_executable(ix_test ${SOURCE_FILES} "ix_test.cpp")
+add_executable(statistics ${SOURCE_FILES} ${CPP_CONTRIB_FILES} "statistics.cpp")
 
 # 将gflog和gflags的库文件链接到项目
 #target_link_libraries(dbcreate ${GLOG_LIBRARIES} ${GFLAGS_LIBRARIES})
 target_link_libraries(microDBMS ${GLOG_LIBRARIES} ${GFLAGS_LIBRARIES})
 #target_link_libraries(rm_test ${GLOG_LIBRARIES} ${GFLAGS_LIBRARIES})
 #target_link_libraries(ix_test ${GLOG_LIBRARIES} ${GFLAGS_LIBRARIES})
-
+target_link_libraries(statistics ${GLOG_LIBRARIES} ${GFLAGS_LIBRARIES})
