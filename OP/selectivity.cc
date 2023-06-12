@@ -111,11 +111,11 @@ double calSingleRelSelectivity(const std::vector<QL_Condition>& conditions) {
                         // 找到匹配的relName和attrName
                         bucketNum = data.bucketNum;
                         bucketPosition = findIntegerPosition(data.value, rhsValue, bucketLeftValue, bucketRightValue);
-                        std::cout<<"rhsValue: "<<rhsValue<<std::endl;
-                        std::cout<<"data.value: "<<data.value<<std::endl;
-                        std::cout<<"bucketPosition: "<< bucketPosition<<std::endl;
-                        std::cout<<"bucketLeftValue: "<<bucketLeftValue<<std::endl;
-                        std::cout<<"bucketRightValue: "<<bucketRightValue<<std::endl;
+//                        std::cout<<"rhsValue: "<<rhsValue<<std::endl;
+//                        std::cout<<"data.value: "<<data.value<<std::endl;
+//                        std::cout<<"bucketPosition: "<< bucketPosition<<std::endl;
+//                        std::cout<<"bucketLeftValue: "<<bucketLeftValue<<std::endl;
+//                        std::cout<<"bucketRightValue: "<<bucketRightValue<<std::endl;
                         findMinMax(data.value, minValue, maxValue);
                         if(bucketNum == 0){
                             printf("直方图桶信息获取错误");
