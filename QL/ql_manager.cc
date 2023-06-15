@@ -6,6 +6,7 @@
 #include <set>
 #include <numeric>
 #include <cassert>
+#include <chrono>
 #include "ql.h"
 #include "ql_iterator.h"
 #include "ql_disjoint.h"
@@ -124,6 +125,8 @@ inline void map_function(T &container, const F &func) {
 RC QL_Manager::Select(int nSelAttrs, const RelAttr *selAttrs,
                       int nRelations, const char *const *relations,
                       int nConditions, const Condition *conditions) {
+    //zy
+    auto start_time = std::chrono::high_resolution_clock::now();
     // 打开查询涉及的每一个数据库表文件
     std::vector<RM_FileHandle> fileHandles((unsigned long)nRelations);
     for (int i = 0; i < nRelations; ++i)
@@ -515,15 +518,23 @@ RC QL_Manager::Select(int nSelAttrs, const RelAttr *selAttrs,
     RM_Record record;
     char *data;
     bool *isnull;
+    int num = 0;
     while ((retcode = final->GetNextRec(record)) != RM_EOF) {
         if (retcode) return retcode;
         TRY(record.GetData(data));
         TRY(record.GetIsnull(isnull));
-        printer.Print(std::cout, data, isnull);
+        num++;
+        //zy print
+//        printer.Print(std::cout, data, isnull);
     }
-    printer.PrintFooter(std::cout);
+    std::cout<<'\n'<<num<<" tuple(s)."<<std::endl;
+//    printer.PrintFooter(std::cout);
 
     clean(root);
+    //zy
+    auto end_time = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
+    std::cout << "函数执行时间: " << duration.count() << "ms" << std::endl;
     return 0;
 }
 
