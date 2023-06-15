@@ -31,9 +31,6 @@ public:
     SS_Manager(QL_Manager &qlm, SM_Manager &smm, IX_Manager &ixm, RM_Manager &rmm);
     ~SS_Manager();
 
-    // zy 加载统计信息到内存的函数
-    RC load_statistics_into_memory();
-
     RC AnalyzeTable(const char *relName);
 private:
     QL_Manager *pQlm;
@@ -41,6 +38,8 @@ private:
     IX_Manager *pIxm;   // IX_Manager对象
     RM_Manager *pRmm;   // RM_Manager对象
 
+    // zy 加载统计信息到内存的函数
+    RC load_statistics_into_memory();
     void create_rel_statistics();
     RC sample(const char *relname);
     RC insert_or_update(DataAttrInfo &attrInfo, std::vector<std::vector<int>> &buckets);
